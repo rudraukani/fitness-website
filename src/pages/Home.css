@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Contrail+One&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+.fullpage-div {
+    width: 100vw;
+    height: 100vh;
+}
+
+.top-div {
+    width: 100%;
+    min-height: 60vh;
+    display: flex;
+    justify-content: space-around;
+}
+
+.words-div {
+    width: 40%;
+    height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.title {
+    /* height: 50%; */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.descrip {
+    /* height: 60%;  */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    font-family: 'Contrail One', sans-serif;
+    font-size: 5rem;
+}
+.big-letter {
+    font-size: 6rem;
+}
+
+h2 {
+    font-family: 'Contrail One', sans-serif;
+    margin-top: -1rem;
+    font-size: 1.6rem;
+}
+
+p:first-of-type {
+    padding-top: 3rem;
+}
+
+p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 3rem;
+    font-size: 1.1rem;
+}
+
+.main-img-div {
+    width: 40%;
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+}
+
+.main-page-img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
