@@ -4,6 +4,7 @@
     --orange: #f8682b;
     --teal: #16bead;
     --dark-teal: #2d5555;
+    --beige: #fbf6d8;
 }
 
 .fullpage-div {
@@ -42,6 +43,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: var(--beige);
     /* background-color: aquamarine; */
 }
 
@@ -87,11 +89,12 @@ p {
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: var(--teal);
 }
 
 h3 {
     font-family: 'Contrail One', sans-serif;
-    font-size: 1.6rem;
+    font-size: 1.2rem;
 }
 
 h3:first-of-type {
