@@ -46,6 +46,7 @@ const Home = () => {
             </div>
             <div class="bottom-div">
                 <h3>LEARN MORE</h3>
+                <h3>⌄</h3>
             </div>
         </div>
     /*

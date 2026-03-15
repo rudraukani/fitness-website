@@ -1,5 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Contrail+One&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
+:root {
+    --orange: #f8682b;
+    --teal: #16bead;
+    --dark-teal: #2d5555;
+}
+
 .fullpage-div {
     width: 100vw;
     height: 100vh;
@@ -7,14 +13,14 @@
 
 .top-div {
     width: 100%;
-    min-height: 60vh;
+    min-height: 80vh;
     display: flex;
     justify-content: space-around;
 }
 
 .words-div {
     width: 40%;
-    height: 60vh;
+    height: 80vh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -28,12 +34,15 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    color: var(--orange);
+    /* background-color: aqua; */
 }
 .descrip {
     /* height: 60%;  */
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* background-color: aquamarine; */
 }
 
 h1 {
@@ -71,4 +80,20 @@ p {
     max-width: 100%;
     height: auto;
     display: block;
+}
+
+.bottom-div {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h3 {
+    font-family: 'Contrail One', sans-serif;
+    font-size: 1.6rem;
+}
+
+h3:first-of-type {
+    padding-top: 0.5rem;
 }

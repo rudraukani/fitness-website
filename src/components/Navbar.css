@@ -1,21 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Contrail+One&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
+:root {
+    --orange: #f8682b;
+    --teal: #16bead;
+}
+
 * {
     margin: 0;
     padding: 0;
 }
+
 .navbar-div {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 1.1rem;
-    /* background-color: pink; */
+    font-family: 'Contrail One', sans-serif;
+    font-size: 1.6rem;
     width: 100%;
-    padding: 0.5rem 0 0.2rem 0;
+    padding-top: 0.5rem;
     display: flex;
     justify-content: space-around;
     align-items: center;
+    background-color: var(--teal);
+}
+
+.navbar-div a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #000000;
 }
 
 .navbar-div a:hover {
-    color: red;
+    color: var(--orange);
 }
+
 
