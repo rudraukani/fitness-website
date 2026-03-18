@@ -27,7 +27,7 @@ const Home = () => {
 
   return (
     <div className="fullpage-div">
-            <div className="navbar-div"></div>
+            {/* <div className="navbar-div"></div> */}
             <div className="top-div">
                 <div className="words-div">
                     <span className="title">
