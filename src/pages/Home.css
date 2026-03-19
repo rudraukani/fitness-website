@@ -1,102 +1,131 @@
 @import url('https://fonts.googleapis.com/css2?family=Contrail+One&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 :root {
-    --orange: #f8682b;
-    --teal: #16bead;
-    --dark-teal: #2d5555;
-    --beige: #fbf6d8;
+    --bkg: #d9d9d9;
+    --main: #000;
+    --highlight: #4A8FE7;
+}
+
+* {
+    margin: 0;
+    padding: 0;
 }
 
 .fullpage-div {
-    width: 100vw;
-    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-.top-div {
+.bg-img {
+    position: fixed;
+    inset: 0;
+    background-image: url('../assets/images/gym2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -2;
+}
+
+.pinned-items {
+    position: fixed;
+    top: 3rem;
+    left: 0;
+    right: 0;
+    z-index: 10;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+
+.pinned-items .btn1, 
+.pinned-items .btn1:hover {
+    pointer-events: auto;
+}
+
+.title-div {
     width: 100%;
-    min-height: 80vh;
-    display: flex;
-    justify-content: space-around;
-}
-
-.words-div {
-    width: 40%;
-    height: 80vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-}
-
-
-.title {
-    /* height: 50%; */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--orange);
-    /* background-color: aqua; */
-}
-.descrip {
-    /* height: 60%;  */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: var(--beige);
-    /* background-color: aquamarine; */
+    background-color: var(--bkg);
+    padding-bottom: 1rem;
 }
 
 h1 {
     font-family: 'Contrail One', sans-serif;
     font-size: 5rem;
+    color: var(--main);
 }
+
 .big-letter {
-    font-size: 5.5rem;
+    font-size: 4rem;
+    color: var(--main);
 }
 
 h2 {
     font-family: 'Contrail One', sans-serif;
     margin-top: -1rem;
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+    color: var(--main);
 }
 
-p:first-of-type {
-    padding-top: 3rem;
-}
-
-p {
-    font-family: 'IBM Plex Sans', sans-serif;
-    line-height: 3rem;
-    font-size: 1.1rem;
-}
-
-.main-img-div {
-    width: 40%;
-    display: flex; 
-    justify-content: center;
-    align-items: center;
-}
-
-.main-page-img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-}
-
-.bottom-div {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: var(--teal);
-}
 
 h3 {
     font-family: 'Contrail One', sans-serif;
     font-size: 1.2rem;
 }
 
-h3:first-of-type {
-    padding-top: 0.5rem;
+.explore-div {
+    padding: 1rem 0;
 }
+
+.btn1 {
+    display: flex;
+    background-color: var(--bkg);
+    color: var(--main);
+    padding: 0.75rem;
+    align-items: center;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    border: none;
+    border-radius: 20px;
+}
+
+.btn1:hover {
+    background-color: var(--highlight); 
+}
+
+.scroll-content {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+}
+
+.blank-div {
+    height: 80vh;
+}
+
+.learnmore-div {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.btn2 {
+    display: flex;
+    background-color: var(--bkg);
+    color: var(--main);
+    padding: 0.75rem;
+    align-items: center;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    border: none;
+    border-radius: 20px; 
+}
+

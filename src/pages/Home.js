@@ -1,6 +1,6 @@
 import "./Home.css";
-import HomePageImage from '../assets/images/main-fitness-img.jpg';
-
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 /*
 import React, { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
@@ -12,59 +12,32 @@ import { fetchGifMap } from '../utils/fetchGifs';
 
 
 const Home = () => {
-  // const [exercises, setExercises] = useState([]);
-  // const [bodyPart, setBodyPart] = useState('all');
-  // const [gifMap, setGifMap] = useState({});
-
-  // useEffect(() => {
-  //   const loadGifs = async () => {
-  //     const gifs = await fetchGifMap();
-  //     setGifMap(gifs);
-  //   };
-
-  //   loadGifs();
-  // }, []);
-
   return (
     <div className="fullpage-div">
-            {/* <div className="navbar-div"></div> */}
-            <div className="top-div">
-                <div className="words-div">
-                    <span className="title">
-                      <h1><span className="big-letter">F</span>IT<span className="big-letter">S</span>COUT</h1>
-                      <h2 className>FITNESS MADE SIMPLE</h2>
-                    </span>
-                    <span className="descrip">
-                      <p>Your fitness journey should be exciting, not imtimidating.</p>
-                      <p>We make exercises easy to find, understand and follow.</p>
-                      <p>Everyone deserves to feel confident in the gym!</p>
-                    </span>
-                </div>
-                <div className="main-img-div">
-                    <img src={HomePageImage} alt="Fitness" className="main-page-img"/>
-                </div>
-            </div>
-            <div class="bottom-div">
-                <h3>LEARN MORE</h3>
-                <h3>⌄</h3>
-            </div>
+
+      <div className="bg-img"></div>
+
+      <div className="pinned-items">
+        {/* navbar goes here, takes 20%vh, is brought in from App.js */}
+        <div className="title-div">
+          <h1><span className="big-letter">F</span>IT<span className="big-letter">S</span>COUT</h1>
+          <h2>FITNESS MADE SIMPLE</h2>
         </div>
-    /*
-    <Box>
-      <HeroBanner />
-      <SearchExercises
-        setExercises={setExercises}
-        bodyPart={bodyPart}
-        setBodyPart={setBodyPart}
-      />
-      <Exercises
-        setExercises={setExercises}
-        exercises={exercises}
-        bodyPart={bodyPart}
-        gifMap={gifMap}
-      />
-    </Box> 
-    */
+        <div className="fade-div"></div>
+        <div className="explore-div">
+          <button className="btn1">EXPLORE EXERCISES - IT'S FREE! <ChevronRightIcon /></button>
+        </div>
+      </div>
+
+      <div className="scroll-content">
+        <div className="blank-div"></div>
+        <div className="learnmore-div">
+          <button className="btn2">SCROLL TO LEARN MORE <KeyboardArrowDownIcon /></button>
+        </div>
+
+        <div className="features-div"></div>
+      </div>
+    </div>
   );
 };
 

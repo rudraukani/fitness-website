@@ -84,8 +84,9 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
         sx={{width: '70vw', maxWidth: '70vw', minWidth: '300px'}}
       >
         <TextField
-          fullWidth
           sx={{
+            width: '80%',
+            minWidth: '300px',
             backgroundColor: '#FFF',
             borderRadius: '20px',
             '& .MuiInputBase-root': {
@@ -110,15 +111,14 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
         <Button
           variant="contained"
           sx={{
-            bgcolor: '#131317',
-            color: '#16bead',
-            borderRadius: '10px',
+            bgcolor: '#16bead',
+            color: '#000',
+            borderRadius: '20px',
             textTransform: 'none',
             width: '10%', maxWidth: '10%', minWidth: '50px',
-            height: '2.5rem',
+            height: '3.5rem',
             position: 'absolute',
-            right: '10px',
-            top: '0.5rem',
+            ml: '1rem',
             fontFamily: '"Contrail One", sans-serif',
             fontSize: { lg: '20px', xs: '14px' },
           }}
