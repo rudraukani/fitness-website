@@ -1,10 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Contrail+One&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 :root {
-    --orange: #f8682b;
-    --teal: #16bead;
-    --dark-teal: #2d5555;
-    --beige: #fbf6d8;
+    --bkg: #d9d9d9;
+    --main: #000;
+    --highlight: #4A8FE7;
 }
 
 .fullpage-div {
@@ -12,9 +11,20 @@
     height: 100vh;
 }
 
-.title-div {
+.explore-bg-img {
+    position: fixed;
+    inset: 0;
+    background-image: url('../assets/images/gym2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(3px);
+    z-index: -2;
+}
+
+.explore-title-div {
     height: 15%;
-    /* background-color: aqua; */
+    background-color: var(--bkg);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -22,8 +32,11 @@
     color: var(--orange);
 }
 
-h1 {
+.title {
     font-family: 'Contrail One', sans-serif;
-    font-size: 3rem;
+    font-size: 2.5rem;
+    color: var(--main);
 }
+
+
 

@@ -20,7 +20,12 @@ const Home = () => {
       <div className="pinned-items">
         {/* navbar goes here, takes 20%vh, is brought in from App.js */}
         <div className="title-div">
-          <h1><span className="big-letter">F</span>IT<span className="big-letter">S</span>COUT</h1>
+          <h1>
+            <span className="big-letter">F</span>
+            <span className="normal-letter">IT</span>
+            <span className="big-letter">S</span>
+            <span className="normal-letter">COUT</span>
+          </h1>
           <h2>FITNESS MADE SIMPLE</h2>
         </div>
         <div className="fade-div"></div>

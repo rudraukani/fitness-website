@@ -87,45 +87,46 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
           sx={{
             width: '80%',
             minWidth: '300px',
-            backgroundColor: '#FFF',
+            backgroundColor: '#d9d9d9',
             borderRadius: '20px',
             '& .MuiInputBase-root': {
               height: '3.5rem',
               borderRadius: '20px'
             },
             '& input': {
-              fontWeight: 400, 
+              fontWeight: '400',
+              paddingLeft: '2rem', 
               '&::placeholder': {
-                fontFamily: '"Contrail One", sans-serif',
-                pl: '0.5rem',
+                fontFamily: '"IBM Plex Sans", sans-serif',
               }
             }
           }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Enter Exercise Name"
+          placeholder="Exerise Name"
           type="text"
         />
 
         <Button
           variant="contained"
           sx={{
-            bgcolor: '#16bead',
+            bgcolor: '#d9d9d9',
             color: '#000',
             borderRadius: '20px',
             textTransform: 'none',
-            width: '10%', maxWidth: '10%', minWidth: '50px',
+            width: '12%', maxWidth: '12%', minWidth: '50px',
             height: '3.5rem',
             position: 'absolute',
             ml: '1rem',
-            fontFamily: '"Contrail One", sans-serif',
-            fontSize: { lg: '20px', xs: '14px' },
+            fontFamily: '"IBM Plex Sans", sans-serif',
+            fontWeight: '600',
+            fontSize: { lg: '18px', xs: '12px' },
           }}
           onClick={handleSearch}
           disabled={loadingSearch}
         >
-          {loadingSearch ? 'Searching...' : 'SEARCH'}
+          {loadingSearch ? '...' : 'SEARCH'}
         </Button>
       </Box>
 

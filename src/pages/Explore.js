@@ -11,9 +11,13 @@ function Explore() {
   
   return (
     <div className="fullpage-div">
-      <div className="title-div">
+
+      <div className="explore-bg-img"></div>
+
+      <div className="explore-title-div">
         <h1 className="title">EXPLORE EXERCISES</h1>
       </div>
+      
       <div className="searchbar-div">
         <SearchExercises
           setExercises={setExercises}

@@ -51,12 +51,16 @@
     align-items: center;
     justify-content: center;
     background-color: var(--bkg);
-    padding-bottom: 1rem;
+    padding-bottom: 1.5rem;
+    padding-top: 0.5rem;
 }
 
 h1 {
     font-family: 'Contrail One', sans-serif;
-    font-size: 5rem;
+}
+
+.normal-letter {
+    font-size: 3rem;
     color: var(--main);
 }
 
