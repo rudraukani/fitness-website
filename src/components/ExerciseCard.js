@@ -46,7 +46,7 @@ const ExerciseCard = ({ exercise, gifMap }) => {
 
       <Typography
         ml="21px"
-        color="#000"
+        color="#d9d9d9"
         fontWeight="bold"
         sx={{ fontSize: { lg: '24px', xs: '20px' } }}
         mt="11px"
