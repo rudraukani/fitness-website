@@ -4,7 +4,7 @@ import { Box, Stack, Typography, Pagination } from '@mui/material';
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import ExerciseCard from './ExerciseCard';
 
-const Exercises = ({ exercises, bodyPart, setExercises }) => {
+const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const exercisesPerPage = 9;
 
@@ -27,12 +27,12 @@ const Exercises = ({ exercises, bodyPart, setExercises }) => {
         if (bodyPart === 'all') {
           exercisesData = await fetchData(
             'https://exercisedb.p.rapidapi.com/exercises?limit=50',
-            exerciseOptions
+            exerciseOptions,
           );
         } else {
           exercisesData = await fetchData(
             `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=50`,
-            exerciseOptions
+            exerciseOptions,
           );
         }
 
@@ -45,13 +45,17 @@ const Exercises = ({ exercises, bodyPart, setExercises }) => {
 
     fetchExercisesData();
   }, [bodyPart, setExercises]);
-  console.log(currentExercises);
-
+  console.log('currentExercises sample', currentExercises[0]);
+  console.log('gifMap in Exercises sample', gifMap);
   return (
-    <Box id="exercises" sx={{ mt: { lg: '110px' } }} mt="50px" p="20px">
-      <Typography variant="h3" mb="46px">
-        Showing Results
-      </Typography>
+    <Box className="results-div" id="exercises" sx={{ mt: { lg: '110px' } }} mt="50px" p="20px">
+      <Typography 
+        className="results-title"
+        sx={{
+          fontSize: '1.5rem',
+          fontWeight: 900,
+        }}
+      >RESULTS</Typography>
 
       <Stack
         direction="row"
@@ -60,7 +64,11 @@ const Exercises = ({ exercises, bodyPart, setExercises }) => {
         justifyContent="center"
       >
         {currentExercises.map((exercise, idx) => (
-          <ExerciseCard key={exercise.id || idx} exercise={exercise} />
+          <ExerciseCard 
+            key={exercise.id || idx} 
+            exercise={exercise} 
+            gifMap={gifMap}
+          />
         ))}
       </Stack>
 

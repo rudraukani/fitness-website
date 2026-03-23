@@ -9,13 +9,21 @@ function Explore() {
   const [exercises, setExercises] = useState([]);
   const [bodyPart, setBodyPart] = useState('all');
   const [gifMap, setGifMap] = useState({});
-      useEffect(() => {
-        const loadGifs = async () => {
-          const gifs = await fetchGifMap();
-          setGifMap(gifs);
-        };
-        loadGifs();
-      }, []);
+  
+  useEffect(() => {
+    const loadGifs = async () => {
+      const gifs = await fetchGifMap();
+      console.log('gifs returned from fetchGifMap', gifs);
+      setGifMap(gifs);
+    };
+
+    loadGifs();
+  }, []);
+
+  useEffect(() => {
+    console.log('gifMap state changed', gifMap);
+    console.log('gifMap keys', Object.keys(gifMap));
+  }, [gifMap]);
 
   return (
     <div className="fullpage-div">
@@ -46,36 +54,3 @@ function Explore() {
 }
 
 export default Explore;
-
-/*
-function Explore (){
-    const [exercises, setExercises] = useState([]);
-      const [bodyPart, setBodyPart] = useState('all');
-      const [gifMap, setGifMap] = useState({});
-      useEffect(() => {
-        const loadGifs = async () => {
-          const gifs = await fetchGifMap();
-          setGifMap(gifs);
-        };
-        loadGifs();
-      }, []);
-
-    return (
-    <Box>
-      <SearchExercises
-        setExercises={setExercises}
-        bodyPart={bodyPart}
-        setBodyPart={setBodyPart}
-      />
-      <Exercises
-        setExercises={setExercises}
-        exercises={exercises}
-        bodyPart={bodyPart}
-        gifMap={gifMap}
-      />
-    </Box>
-    )
-};
-
-export default Explore;
-*/

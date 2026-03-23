@@ -17,6 +17,14 @@ export const youtubeOptions = {
 export const fetchData = async (url, options) => {
   const res = await fetch(url, options);
 
+  if (res.status === 429) {
+    if (retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return fetchData(url, options, retries - 1);
+    }
+    throw new Error('Too many requests. Please wait a moment and try again.');
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Request failed: ${res.status} ${text}`);

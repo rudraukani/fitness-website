@@ -7,45 +7,52 @@ import HorizontalScrollbar from './HorizontalScrollbar';
 const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
   const [search, setSearch] = useState('');
   const [bodyParts, setBodyParts] = useState([]);
+  const [allExercises, setAllExercises] = useState([]);
   const [loadingBodyParts, setLoadingBodyParts] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchExercisesData = async () => {
+    const fetchInitialData = async () => {
       setLoadingBodyParts(true);
+      setError('');
+
       try {
-        const bodyPartsData = await fetchData(
-          'https://exercisedb.p.rapidapi.com/exercises/bodyPartList',
-          exerciseOptions
-        );
+        const [bodyPartsData, exercisesData] = await Promise.all([
+          fetchData(
+            'https://exercisedb.p.rapidapi.com/exercises/bodyPartList',
+            exerciseOptions
+          ),
+          fetchData(
+            'https://exercisedb.p.rapidapi.com/exercises',
+            exerciseOptions
+          ),
+        ]);
 
         setBodyParts(['all', ...(Array.isArray(bodyPartsData) ? bodyPartsData : [])]);
+        setAllExercises(Array.isArray(exercisesData) ? exercisesData : []);
       } catch (error) {
-        console.error('Body parts error:', error);
+        console.error('Initial fetch error:', error);
         setBodyParts(['all']);
+        setAllExercises([]);
+        setError(error.message);
       } finally {
         setLoadingBodyParts(false);
       }
     };
 
-    fetchExercisesData();
+    fetchInitialData();
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     const normalizedSearch = search.trim().toLowerCase();
     if (!normalizedSearch) return;
 
     setLoadingSearch(true);
+    setError('');
 
     try {
-      const exercisesData = await fetchData(
-        'https://exercisedb.p.rapidapi.com/exercises?limit=0',
-        exerciseOptions
-      );
-
-      const list = Array.isArray(exercisesData) ? exercisesData : [];
-
-      const searchedExercises = list.filter((item) => {
+      const searchedExercises = allExercises.filter((item) => {
         const matchesSearch =
           item.name?.toLowerCase().includes(normalizedSearch) ||
           item.target?.toLowerCase().includes(normalizedSearch) ||
@@ -53,30 +60,35 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
           item.bodyPart?.toLowerCase().includes(normalizedSearch);
 
         const matchesBodyPart =
-          bodyPart === 'all' || !bodyPart || item.bodyPart?.toLowerCase() === bodyPart.toLowerCase();
+          bodyPart === 'all' ||
+          !bodyPart ||
+          item.bodyPart?.toLowerCase() === bodyPart.toLowerCase();
 
         return matchesSearch && matchesBodyPart;
       });
 
-      window.scrollTo({ top: 1800, left: 100, behavior: 'smooth' });
       setExercises(searchedExercises);
-      setSearch('');
+      window.scrollTo({ top: 1800, left: 100, behavior: 'smooth' });
     } catch (error) {
-      console.error('Search error:', error);
-      setExercises([]);
+        console.error('Search error:', error);
+        setExercises([]);
+        setError('Search failed.');
     } finally {
       setLoadingSearch(false);
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
   return (
     <Stack alignItems="center" mt="0.5rem" justifyContent="center" p="20px">
+      {error && (
+        <Box sx={{ color: 'red', mb: 2 }}>
+          {error}
+        </Box>
+      )}
 
       <Box 
         position="relative" 
@@ -96,10 +108,7 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
             '& input': {
               fontWeight: '400',
               paddingLeft: '2rem', 
-              '&::placeholder': {
-                fontFamily: '"IBM Plex Sans", sans-serif',
-              }
-            }
+            },
           }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -124,7 +133,7 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
             fontSize: { lg: '18px', xs: '12px' },
           }}
           onClick={handleSearch}
-          disabled={loadingSearch}
+          disabled={loadingSearch || allExercises.length === 0}
         >
           {loadingSearch ? '...' : 'SEARCH'}
         </Button>
