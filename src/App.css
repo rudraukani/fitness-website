@@ -54,7 +54,6 @@
   padding-bottom: 10px;
   transform: scale(1, 1);
   transition: 0.3s all ease-in-out;
-  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.26);
   overflow: hidden;
 }
 
@@ -63,4 +62,5 @@
   width: 220px;
   object-fit: cover;
   background: var(--main);
+  background-color: white;
 }

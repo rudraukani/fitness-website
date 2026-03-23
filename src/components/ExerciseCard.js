@@ -45,12 +45,13 @@ const ExerciseCard = ({ exercise, gifMap }) => {
       </Stack>
 
       <Typography
-        ml="21px"
-        color="#d9d9d9"
-        fontWeight="bold"
-        sx={{ fontSize: { lg: '24px', xs: '20px' } }}
-        mt="11px"
-        pb="10px"
+        color="#fff"
+        fontWeight="800"
+        textAlign="center"
+        sx={{ fontSize: { lg: '14px', xs: '14px' } }}
+        pl="1.5rem"
+        pr="1.5rem"
+        pb="0.5rem"
         textTransform="capitalize"
       >
         {exercise.name}
