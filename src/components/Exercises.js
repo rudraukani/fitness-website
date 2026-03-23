@@ -48,7 +48,7 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
   console.log('currentExercises sample', currentExercises[0]);
   console.log('gifMap in Exercises sample', gifMap);
   return (
-    <Box className="results-div" id="exercises" sx={{ mt: { lg: '110px' } }} mt="50px" p="20px">
+    <Box className="results-div" id="exercises" p="20px">
       <Typography 
         className="results-title"
         sx={{

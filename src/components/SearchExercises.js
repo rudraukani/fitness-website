@@ -130,7 +130,7 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
             ml: '1rem',
             fontFamily: '"IBM Plex Sans", sans-serif',
             fontWeight: '600',
-            fontSize: { lg: '18px', xs: '12px' },
+            fontSize: '13px',
           }}
           onClick={handleSearch}
           disabled={loadingSearch || allExercises.length === 0}
