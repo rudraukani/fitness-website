@@ -6,29 +6,27 @@ import Explore from './pages/Explore';
 import Account from './pages/Account';
 import ExerciseDetail from './pages/ExerciseDetail';
 import Navbar from './components/Navbar';
+import Favorites from './pages/Favorites';
 
 const App = () => {
-
   return (
     <div className="app-div">
-
       <div className="navbar-div">
         <Navbar />
       </div>
 
       <div className="page-content">
         <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/exercise/:id" element={<ExerciseDetail />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/account" element={<Account />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/exercise/:id" element={<ExerciseDetail />} />
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/favorites" element={<Favorites />} />
         </Routes>
       </div>
-
     </div>
   );
 };
-
 
 export default App;
 

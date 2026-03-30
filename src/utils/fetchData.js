@@ -14,7 +14,7 @@ export const youtubeOptions = {
   },
 };
 
-export const fetchData = async (url, options) => {
+export const fetchData = async (url, options, retries = 2) => {
   const res = await fetch(url, options);
 
   if (res.status === 429) {

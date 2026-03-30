@@ -27,12 +27,12 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
         if (bodyPart === 'all') {
           exercisesData = await fetchData(
             'https://exercisedb.p.rapidapi.com/exercises?limit=50',
-            exerciseOptions,
+            exerciseOptions
           );
         } else {
           exercisesData = await fetchData(
             `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=50`,
-            exerciseOptions,
+            exerciseOptions
           );
         }
 
@@ -45,17 +45,17 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
 
     fetchExercisesData();
   }, [bodyPart, setExercises]);
-  console.log('currentExercises sample', currentExercises[0]);
-  console.log('gifMap in Exercises sample', gifMap);
+
   return (
-    <Box className="results-div" id="exercises" p="20px">
-      <Typography 
-        className="results-title"
+    <Box id="exercises" p="20px">
+      <Typography
         sx={{
           fontSize: '1.5rem',
           fontWeight: 900,
         }}
-      >RESULTS</Typography>
+      >
+        RESULTS
+      </Typography>
 
       <Stack
         direction="row"
@@ -64,10 +64,10 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
         justifyContent="center"
       >
         {currentExercises.map((exercise, idx) => (
-          <ExerciseCard 
-            key={exercise.id || idx} 
-            exercise={exercise} 
-            gifMap={gifMap}
+          <ExerciseCard
+            key={exercise.id || idx}
+            exercise={exercise}
+            gifUrl={gifMap?.[exercise.id]}
           />
         ))}
       </Stack>
@@ -77,7 +77,6 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
           <Pagination
             color="standard"
             shape="rounded"
-            defaultPage={1}
             count={Math.ceil(safeExercises.length / exercisesPerPage)}
             page={currentPage}
             onChange={paginate}

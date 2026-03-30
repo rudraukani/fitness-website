@@ -1,0 +1,19 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCT8eY336H3zHNT5_GEe2nK2cVoO50vnSo',
+  authDomain: 'fitscout-bdfa0.firebaseapp.com',
+  projectId: 'fitscout-bdfa0',
+  storageBucket: 'fitscout-bdfa0.firebasestorage.app',
+  messagingSenderId: '840105195989',
+  appId: '1:840105195989:web:133c2aa2456aeac0cca55c',
+  measurementId: 'G-4XNQGJ2GZ1',
+};
+
+const app = initializeApp(firebaseConfig);
+
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+export const db = getFirestore(app);

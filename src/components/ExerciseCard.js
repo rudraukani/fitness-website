@@ -1,57 +1,96 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, Stack, Typography } from '@mui/material';
-import BannerImage from '../assets/images/banner.png';
+import { useAuth } from '../context/AuthContext';
+import { addFavoriteExercise } from '../utils/favorites';
 
-const ExerciseCard = ({ exercise, gifMap }) => {
+const ExerciseCard = ({ exercise, gifUrl }) => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [favorite, setFavorite] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
 
-  const imageSrc =
-    gifMap?.[exercise.name?.toLowerCase?.().trim()] ||
-    exercise.gifUrl;
+  const handleFavoriteClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  console.log("exercise object:", exercise);
-  console.log("gifUrl:", exercise.gifUrl);
+    if (!currentUser) {
+      navigate('/account');
+      return;
+    }
+
+    try {
+      setFavLoading(true);
+      await addFavoriteExercise(currentUser.uid, exercise);
+      setFavorite(true);
+      navigate('/favorites');
+    } catch (error) {
+      console.error('Favorite button error:', error);
+      alert('Could not save favorite right now. Please try again.');
+    } finally {
+      setFavLoading(false);
+    }
+  };
 
   return (
     <Link className="exercise-card" to={`/exercise/${exercise.id}`}>
-      <img src={imageSrc} alt={exercise.name} loading="lazy" />
+      <img src={gifUrl || exercise.gifUrl} alt={exercise.name} loading="lazy" />
 
-      <Stack direction="row">
+      <Stack direction="row" sx={{ justifyContent: 'space-between', px: '10px', mt: '10px' }}>
+        <Stack direction="row">
+          <Button
+            sx={{
+              ml: '11px',
+              color: '#fff',
+              background: '#FFA9A9',
+              fontSize: '14px',
+              borderRadius: '20px',
+              textTransform: 'capitalize',
+            }}
+          >
+            {exercise.bodyPart}
+          </Button>
+
+          <Button
+            sx={{
+              ml: '11px',
+              color: '#fff',
+              background: '#FCC757',
+              fontSize: '14px',
+              borderRadius: '20px',
+              textTransform: 'capitalize',
+            }}
+          >
+            {exercise.target}
+          </Button>
+        </Stack>
+
         <Button
+          onClick={handleFavoriteClick}
+          disabled={favLoading || favorite}
           sx={{
-            ml: '21px',
             color: '#fff',
-            background: '#FFA9A9',
-            fontSize: '14px',
+            background: favorite ? '#ff2625' : '#222',
+            fontSize: '12px',
             borderRadius: '20px',
             textTransform: 'capitalize',
+            minWidth: '90px',
+            '&:hover': {
+              background: favorite ? '#d91f1f' : '#333',
+            },
           }}
         >
-          {exercise.bodyPart}
-        </Button>
-
-        <Button
-          sx={{
-            ml: '21px',
-            color: '#fff',
-            background: '#FCC757',
-            fontSize: '14px',
-            borderRadius: '20px',
-            textTransform: 'capitalize',
-          }}
-        >
-          {exercise.target}
+          {favorite ? 'Saved' : 'Favorite'}
         </Button>
       </Stack>
 
       <Typography
+        ml="21px"
         color="#fff"
-        fontWeight="800"
-        textAlign="center"
-        sx={{ fontSize: { lg: '14px', xs: '14px' } }}
-        pl="1.5rem"
-        pr="1.5rem"
-        pb="0.5rem"
+        fontWeight="bold"
+        sx={{ fontSize: { lg: '24px', xs: '20px' } }}
+        mt="11px"
+        pb="10px"
         textTransform="capitalize"
       >
         {exercise.name}

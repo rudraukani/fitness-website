@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Stack, TextField } from '@mui/material';
 
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import HorizontalScrollbar from './HorizontalScrollbar';
@@ -7,113 +7,68 @@ import HorizontalScrollbar from './HorizontalScrollbar';
 const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
   const [search, setSearch] = useState('');
   const [bodyParts, setBodyParts] = useState([]);
-  const [allExercises, setAllExercises] = useState([]);
-  const [loadingBodyParts, setLoadingBodyParts] = useState(false);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoadingBodyParts(true);
-      setError('');
-
+    const fetchExerciseData = async () => {
       try {
-        const [bodyPartsData, exercisesData] = await Promise.all([
-          fetchData(
-            'https://exercisedb.p.rapidapi.com/exercises/bodyPartList',
-            exerciseOptions
-          ),
-          fetchData(
-            'https://exercisedb.p.rapidapi.com/exercises',
-            exerciseOptions
-          ),
-        ]);
+        const bodyPartsData = await fetchData(
+          'https://exercisedb.p.rapidapi.com/exercises/bodyPartList',
+          exerciseOptions
+        );
 
-        setBodyParts(['all', ...(Array.isArray(bodyPartsData) ? bodyPartsData : [])]);
-        setAllExercises(Array.isArray(exercisesData) ? exercisesData : []);
+        setBodyParts(['all', ...bodyPartsData]);
       } catch (error) {
-        console.error('Initial fetch error:', error);
-        setBodyParts(['all']);
-        setAllExercises([]);
-        setError(error.message);
-      } finally {
-        setLoadingBodyParts(false);
+        console.error('BodyParts error:', error);
       }
     };
 
-    fetchInitialData();
+    fetchExerciseData();
   }, []);
 
-  const handleSearch = () => {
-    const normalizedSearch = search.trim().toLowerCase();
-    if (!normalizedSearch) return;
+  const handleSearch = async () => {
+    if (search) {
+      try {
+        const exercisesData = await fetchData(
+          'https://exercisedb.p.rapidapi.com/exercises',
+          exerciseOptions
+        );
 
-    setLoadingSearch(true);
-    setError('');
+        const searchedExercises = exercisesData.filter(
+          (item) =>
+            item.name.toLowerCase().includes(search.toLowerCase()) ||
+            item.target.toLowerCase().includes(search.toLowerCase()) ||
+            item.equipment.toLowerCase().includes(search.toLowerCase()) ||
+            item.bodyPart.toLowerCase().includes(search.toLowerCase())
+        );
 
-    try {
-      const searchedExercises = allExercises.filter((item) => {
-        const matchesSearch =
-          item.name?.toLowerCase().includes(normalizedSearch) ||
-          item.target?.toLowerCase().includes(normalizedSearch) ||
-          item.equipment?.toLowerCase().includes(normalizedSearch) ||
-          item.bodyPart?.toLowerCase().includes(normalizedSearch);
-
-        const matchesBodyPart =
-          bodyPart === 'all' ||
-          !bodyPart ||
-          item.bodyPart?.toLowerCase() === bodyPart.toLowerCase();
-
-        return matchesSearch && matchesBodyPart;
-      });
-
-      setExercises(searchedExercises);
-      window.scrollTo({ top: 1800, left: 100, behavior: 'smooth' });
-    } catch (error) {
+        setExercises(searchedExercises);
+        setSearch('');
+      } catch (error) {
         console.error('Search error:', error);
-        setExercises([]);
-        setError('Search failed.');
-    } finally {
-      setLoadingSearch(false);
+      }
     }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSearch();
   };
 
   return (
     <Stack alignItems="center" mt="0.5rem" justifyContent="center" p="20px">
-      {error && (
-        <Box sx={{ color: 'red', mb: 2 }}>
-          {error}
-        </Box>
-      )}
-
-      <Box 
-        position="relative" 
+      <Box
+        position="relative"
         mb="72px"
-        sx={{width: '70vw', maxWidth: '70vw', minWidth: '300px'}}
+        sx={{ width: '70vw', minWidth: '300px' }}
       >
         <TextField
           sx={{
             width: '80%',
-            minWidth: '300px',
             backgroundColor: '#d9d9d9',
             borderRadius: '20px',
             '& .MuiInputBase-root': {
               height: '3.5rem',
-              borderRadius: '20px'
-            },
-            '& input': {
-              fontWeight: '400',
-              paddingLeft: '2rem', 
+              borderRadius: '20px',
             },
           }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Exerise Name"
+          placeholder="Exercise Name"
           type="text"
         />
 
@@ -123,31 +78,24 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
             bgcolor: '#d9d9d9',
             color: '#000',
             borderRadius: '20px',
-            textTransform: 'none',
-            width: '12%', maxWidth: '12%', minWidth: '50px',
+            width: '12%',
             height: '3.5rem',
             position: 'absolute',
             ml: '1rem',
-            fontFamily: '"IBM Plex Sans", sans-serif',
-            fontWeight: '600',
-            fontSize: '13px',
           }}
           onClick={handleSearch}
-          disabled={loadingSearch || allExercises.length === 0}
         >
-          {loadingSearch ? '...' : 'SEARCH'}
+          SEARCH
         </Button>
       </Box>
 
-      <Box sx={{ position: 'relative', width: '100%', p: '20px' }}>
-        {!loadingBodyParts && (
-          <HorizontalScrollbar
-            data={bodyParts}
-            bodyParts
-            setBodyPart={setBodyPart}
-            bodyPart={bodyPart}
-          />
-        )}
+      <Box sx={{ width: '100%', p: '20px' }}>
+        <HorizontalScrollbar
+          data={bodyParts}
+          bodyParts
+          setBodyPart={setBodyPart}
+          bodyPart={bodyPart}
+        />
       </Box>
     </Stack>
   );
