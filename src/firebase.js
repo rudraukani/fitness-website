@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCT8eY336H3zHNT5_GEe2nK2cVoO50vnSo',
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: 'fitscout-bdfa0.firebaseapp.com',
   projectId: 'fitscout-bdfa0',
   storageBucket: 'fitscout-bdfa0.firebasestorage.app',
