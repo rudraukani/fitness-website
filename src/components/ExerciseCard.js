@@ -85,13 +85,13 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
       </Stack>
 
       <Typography
-        ml="21px"
         color="#fff"
-        fontWeight="bold"
-        sx={{ fontSize: { lg: '24px', xs: '20px' } }}
-        mt="11px"
-        pb="10px"
-        textTransform="capitalize"
+        fontWeight="800"
+        textAlign="center"
+        sx={{ fontSize: { lg: '14px', xs: '14px' } }}
+        pl="1.5rem"
+        pr="1.5rem"
+        pb="0.5rem"
       >
         {exercise.name}
       </Typography>

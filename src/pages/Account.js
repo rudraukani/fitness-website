@@ -6,7 +6,6 @@ import {
   Stack,
   TextField,
   Typography,
-  Fade,
 } from '@mui/material';
 import {
   createUserWithEmailAndPassword,
@@ -16,6 +15,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import GymBackground from '../assets/images/gym2.jpg';
+import './Account.css';
 
 const Account = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +25,7 @@ const Account = () => {
   const handleSignUp = async () => {
     setMessage('');
     if (!email || !password) {
-      setMessage('Please enter email and password');
+      setMessage('Please enter an email and password!');
       return;
     }
 
@@ -73,232 +73,91 @@ const Account = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        position: 'relative',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-        px: 2,
-      }}
-    >
+    <Box className="account-page">
       <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url(${GymBackground})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          transform: 'scale(1.05)',
-          animation: 'slowZoom 18s ease-in-out infinite alternate',
-        }}
+        className="account-bg"
+        sx={{ backgroundImage: `url(${GymBackground})` }}
       />
 
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'linear-gradient(135deg, rgba(0,0,0,0.82), rgba(0,0,0,0.55), rgba(255,38,37,0.15))',
-          backdropFilter: 'blur(2px)',
-        }}
-      />
+      <Paper elevation={10} className="account-card">
+        <Stack spacing={3} className="account-stack">
+          <Box textAlign="center">
 
-      <Fade in timeout={1000}>
-        <Paper
-          elevation={10}
-          sx={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: '460px',
-            p: 4,
-            borderRadius: '28px',
-            background: 'rgba(18,18,18,0.78)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
-            backdropFilter: 'blur(14px)',
-            color: '#fff',
-          }}
-        >
-          <Stack spacing={3}>
-            <Box textAlign="center">
-              <Typography
-                sx={{
-                  fontSize: { xs: '34px', md: '42px' },
-                  fontWeight: 800,
-                  color: '#ff2625',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                }}
-              >
-                FitScout
-              </Typography>
-
-              <Typography
-                sx={{
-                  fontSize: '14px',
-                  color: '#d1d1d1',
-                  mt: 0.5,
-                  letterSpacing: '1px',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Train smarter. Stay stronger.
-              </Typography>
-            </Box>
-
-            <Typography
-              textAlign="center"
-              sx={{
-                fontSize: '22px',
-                fontWeight: 700,
-                color: '#fff',
-              }}
-            >
-              Account Access
+            <Typography className="title">
+              <span className="accent">F</span>IT<span className="accent">S</span>COUT
             </Typography>
 
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              InputLabelProps={{ style: { color: '#bdbdbd' } }}
-              InputProps={{ style: { color: '#fff' } }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '14px',
-                  background: 'rgba(255,255,255,0.04)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-                  '&:hover fieldset': { borderColor: '#ff2625' },
-                  '&.Mui-focused fieldset': { borderColor: '#ff2625' },
-                },
-              }}
-            />
+            <Typography textAlign="center" className="subtitle">
+              FITNESS MADE SIMPLE
+            </Typography>
 
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              InputLabelProps={{ style: { color: '#bdbdbd' } }}
-              InputProps={{ style: { color: '#fff' } }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '14px',
-                  background: 'rgba(255,255,255,0.04)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-                  '&:hover fieldset': { borderColor: '#ff2625' },
-                  '&.Mui-focused fieldset': { borderColor: '#ff2625' },
-                },
-              }}
-            />
+          </Box>
 
-            {message && (
-              <Typography
-                sx={{
-                  fontSize: '13px',
-                  color: '#ffb3b3',
-                  textAlign: 'center',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {message}
-              </Typography>
-            )}
+          <Typography textAlign="center" className="login-label">
+            LOGIN
+          </Typography>
 
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={handleLogin}
-              sx={{
-                py: 1.4,
-                borderRadius: '14px',
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-                background: 'linear-gradient(90deg, #ff2625, #ff4d4d)',
-                '&:hover': {
-                  background: 'linear-gradient(90deg, #e01f1f, #ff2625)',
-                },
-              }}
-            >
-              Sign In
-            </Button>
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="account-input"
+          />
 
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={handleSignUp}
-              sx={{
-                py: 1.4,
-                borderRadius: '14px',
-                color: '#fff',
-                borderColor: '#ff2625',
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-                '&:hover': {
-                  borderColor: '#ff2625',
-                  background: 'rgba(255,38,37,0.08)',
-                },
-              }}
-            >
-              Sign Up
-            </Button>
+          <TextField
+            label="Password"
+            type="password"
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="account-input"
+          />
 
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={handleGoogleSignIn}
-              sx={{
-                py: 1.4,
-                borderRadius: '14px',
-                background: '#202020',
-                color: '#fff',
-                fontWeight: 700,
-                letterSpacing: '0.4px',
-                '&:hover': {
-                  background: '#2c2c2c',
-                },
-              }}
-            >
-              Continue with Google
-            </Button>
+          {message && (
+            <Typography className="error-message">
+              {message}
+            </Typography>
+          )}
 
-            <Button
-              variant="text"
-              fullWidth
-              onClick={handleLogout}
-              sx={{
-                color: '#ff2625',
-                fontWeight: 700,
-                '&:hover': {
-                  background: 'rgba(255,38,37,0.06)',
-                },
-              }}
-            >
-              Logout
-            </Button>
-          </Stack>
-        </Paper>
-      </Fade>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleLogin}
+            className="account-btn sign-in-btn"
+          >
+            Sign In
+          </Button>
 
-      <style>
-        {`
-          @keyframes slowZoom {
-            0% {
-              transform: scale(1.03);
-            }
-            100% {
-              transform: scale(1.12);
-            }
-          }
-        `}
-      </style>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={handleSignUp}
+            className="account-btn sign-up-btn"
+          >
+            Sign Up
+          </Button>
+
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleGoogleSignIn}
+            className="account-btn google-btn"
+          >
+            Sign in with Google
+          </Button>
+
+          <Button
+            variant="text"
+            fullWidth
+            onClick={handleLogout}
+            className="logout-btn"
+          >
+            Logout
+          </Button>
+        </Stack>
+      </Paper>
     </Box>
   );
 };

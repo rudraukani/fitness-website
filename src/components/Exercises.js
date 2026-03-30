@@ -39,7 +39,6 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
         setExercises(Array.isArray(exercisesData) ? exercisesData : []);
       } catch (error) {
         console.error('Exercises error:', error);
-        setExercises([]);
       }
     };
 
