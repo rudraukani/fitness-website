@@ -16,6 +16,7 @@ import {
 import { auth, googleProvider } from '../firebase';
 import GymBackground from '../assets/images/gym2.jpg';
 import './Account.css';
+import { colors } from "../components/colors";
 
 const Account = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ const Account = () => {
   const handleSignUp = async () => {
     setMessage('');
     if (!email || !password) {
-      setMessage('Please enter an email and password!');
+      setMessage('PLEASE ENTER EMAIL & PASSWORD');
       return;
     }
 
@@ -40,7 +41,7 @@ const Account = () => {
   const handleLogin = async () => {
     setMessage('');
     if (!email || !password) {
-      setMessage('Please enter email and password');
+      setMessage('PLEASE ENTER EMAIL & PASSWORD');
       return;
     }
 
@@ -73,31 +74,92 @@ const Account = () => {
   };
 
   return (
-    <Box className="account-page">
-      <Box
+    <Box // full page 
+      className="account-page"
+      sx={{
+        minHeight: "100vh",
+        paddingTop: "1.5rem",
+        position: "relative",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+      }}
+    >
+
+      <Box // background div 
         className="account-bg"
-        sx={{ backgroundImage: `url(${GymBackground})` }}
+        sx={{ 
+          backgroundImage: `url(${GymBackground})`,
+          position: "absolute",
+          inset: 0,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          filter: "blur(3px)",
+        }}
       />
 
-      <Paper elevation={10} className="account-card">
+      <Paper // full form
+        elevation={10} 
+        className="account-card"
+        sx={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "460px",
+          padding: "32px",
+          borderRadius: "28px",
+          background: colors.bkg,
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.45)",
+          backdropFilter: "blur(14px)",
+          color: colors.main,
+        }}
+      >
         <Stack spacing={3} className="account-stack">
           <Box textAlign="center">
 
-            <Typography className="title">
-              <span className="accent">F</span>IT<span className="accent">S</span>COUT
+            <Typography //form title
+              textAlign="center"
+              sx={{ 
+                fontFamily: "'Contrail One', sans-serif", 
+                fontSize: "3rem", 
+                color: colors.main,
+                pb: 0,
+                pt: 0, }}
+            >
+              <span className="accent-ac">F</span>IT<span className="accent-ac">S</span>COUT
             </Typography>
 
-            <Typography textAlign="center" className="subtitle">
+            <Typography //subtitle 
+              textAlign="center"
+              sx={{ 
+                fontFamily: "'Contrail One', sans-serif",
+                fontSize: "1.4rem",
+                color: colors.main,
+                width: "100%",
+                mt: "-1.5rem", 
+              }}
+              
+            >
               FITNESS MADE SIMPLE
             </Typography>
 
           </Box>
 
-          <Typography textAlign="center" className="login-label">
+          <Typography // login label
+            textAlign="center" 
+            sx={{
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              color: colors.main,
+            }}
+          >
             LOGIN
           </Typography>
 
-          <TextField
+          <TextField // email input 
             label="Email"
             type="email"
             fullWidth
@@ -116,7 +178,15 @@ const Account = () => {
           />
 
           {message && (
-            <Typography className="error-message">
+            <Typography 
+              textAlign="center"
+              sx={{
+                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontSize: "1rem",
+                fontWeight: "700",
+                color: colors.highlight,
+              }}
+            >
               {message}
             </Typography>
           )}
@@ -125,16 +195,34 @@ const Account = () => {
             variant="contained"
             fullWidth
             onClick={handleLogin}
-            className="account-btn sign-in-btn"
+            className="account-btn"
+            sx={{
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              paddingTop: "0.75rem",
+              paddingBottom: "0.75rem",
+              borderRadius: "15px",
+              fontWeight: "700",
+              background: colors.main,
+              color: colors.bkg,
+            }}
           >
             Sign In
           </Button>
 
           <Button
-            variant="outlined"
+            variant="contained"
             fullWidth
             onClick={handleSignUp}
-            className="account-btn sign-up-btn"
+            className="account-btn"
+            sx={{
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              paddingTop: "0.75rem",
+              paddingBottom: "0.75rem",
+              borderRadius: "15px",
+              fontWeight: "700",
+              background: colors.main,
+              color: colors.bkg,
+            }}
           >
             Sign Up
           </Button>
@@ -143,7 +231,16 @@ const Account = () => {
             variant="contained"
             fullWidth
             onClick={handleGoogleSignIn}
-            className="account-btn google-btn"
+            className="account-btn"
+            sx={{
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              paddingTop: "0.75rem",
+              paddingBottom: "0.75rem",
+              borderRadius: "15px",
+              fontWeight: "700",
+              background: colors.main,
+              color: colors.bkg,
+            }}
           >
             Sign in with Google
           </Button>
