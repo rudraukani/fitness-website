@@ -7,6 +7,7 @@ import Account from './pages/Account';
 import ExerciseDetail from './pages/ExerciseDetail';
 import Navbar from './components/Navbar';
 import Favorites from './pages/Favorites';
+import UserAccount from './pages/UserAccount';
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
           <Route path="/explore" element={<Explore />} />
           <Route path="/account" element={<Account />} />
           <Route path="/favorites" element={<Favorites />} />
+          <Route path="/user" element={<UserAccount />} />
         </Routes>
       </div>
     </div>

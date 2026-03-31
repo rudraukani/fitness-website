@@ -7,13 +7,16 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
+
 import { auth, googleProvider } from '../firebase';
+import { useNavigate } from "react-router-dom";
 import GymBackground from '../assets/images/gym2.jpg';
 import './Account.css';
 import { colors } from "../components/colors";
@@ -22,6 +25,7 @@ const Account = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleSignUp = async () => {
     setMessage('');
@@ -48,6 +52,7 @@ const Account = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       setMessage(`Logged in as ${userCredential.user.email}`);
+      navigate("/user");
     } catch (error) {
       setMessage(error.message);
     }
@@ -58,6 +63,7 @@ const Account = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       setMessage(`Logged in with Google as ${result.user.email}`);
+      navigate("/user");
     } catch (error) {
       setMessage(error.message);
     }
