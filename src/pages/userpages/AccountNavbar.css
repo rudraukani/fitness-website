@@ -29,6 +29,7 @@
     padding: 0.5em 1em;
     justify-content: center;
     border-bottom: 1px solid var(--main);
+    border-right: 1px solid var(--main);
 }
 
 .acc-navbar-div a:hover, .signout-btn:hover {
@@ -46,5 +47,6 @@
     padding: 0.5em 1em;
     justify-content: center;
     cursor: pointer;
+    border-right: 1px solid var(--main);
 }
 
