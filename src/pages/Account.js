@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -15,8 +15,9 @@ import {
   signOut,
 } from 'firebase/auth';
 
-import { auth, googleProvider } from '../firebase';
 import { useNavigate } from "react-router-dom";
+import { auth, googleProvider } from '../firebase';
+import { onAuthStateChanged } from "firebase/auth";
 import GymBackground from '../assets/images/gym2.jpg';
 import './Account.css';
 import { colors } from "../components/colors";
@@ -25,7 +26,21 @@ const Account = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        navigate("/user", { replace: true });
+      } else {
+        setCheckingAuth(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
 
   const handleSignUp = async () => {
     setMessage('');
@@ -69,19 +84,9 @@ const Account = () => {
     }
   };
 
-  const handleLogout = async () => {
-    setMessage('');
-    try {
-      await signOut(auth);
-      setMessage('Logged out successfully');
-    } catch (error) {
-      setMessage(error.message);
-    }
-  };
 
   return (
-    <Box // full page 
-      className="account-page"
+    <Box 
       sx={{
         minHeight: "100vh",
         paddingTop: "1.5rem",
@@ -93,7 +98,7 @@ const Account = () => {
       }}
     >
 
-      <Box // background div 
+      <Box 
         className="account-bg"
         sx={{ 
           backgroundImage: `url(${GymBackground})`,
@@ -251,14 +256,6 @@ const Account = () => {
             Sign in with Google
           </Button>
 
-          <Button
-            variant="text"
-            fullWidth
-            onClick={handleLogout}
-            className="logout-btn"
-          >
-            Logout
-          </Button>
         </Stack>
       </Paper>
     </Box>

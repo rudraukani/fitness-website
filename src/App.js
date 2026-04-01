@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Home from './pages/Home';
 import Explore from './pages/Explore';
@@ -7,7 +7,13 @@ import Account from './pages/Account';
 import ExerciseDetail from './pages/ExerciseDetail';
 import Navbar from './components/Navbar';
 import Favorites from './pages/Favorites';
-import UserAccount from './pages/UserAccount';
+import UserAccount from './pages/userpages/UserAccount';
+
+import AccountOverview from './pages/userpages/AccountOverview';
+import Routines from './pages/userpages/Routines';
+import WorkoutLogs from './pages/userpages/WorkoutLogs';
+import BodyLogs from './pages/userpages/BodyLogs';
+import ProgressTracker from './pages/userpages/ProgressTracker';
 
 const App = () => {
   return (
@@ -21,11 +27,19 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/exercise/:id" element={<ExerciseDetail />} />
           <Route path="/explore" element={<Explore />} />
-          <Route path="/account" element={<Account />} />
           <Route path="/favorites" element={<Favorites />} />
-          <Route path="/user" element={<UserAccount />} />
+          <Route path="/account" element={<Account />} />
+
+          <Route path="/user" element={<UserAccount />}>
+            <Route index element={<AccountOverview />} />
+            <Route path="routines" element={<Routines />}/>
+            <Route path="workoutlogs" element={<WorkoutLogs />}/>
+            <Route path="bodylogs" element={<BodyLogs />}/>
+            <Route path="progresstracker" element={<ProgressTracker />}/>
+          </Route>
         </Routes>
       </div>
+
     </div>
   );
 };
