@@ -6,10 +6,9 @@ import ExerciseCard from './ExerciseCard';
 
 const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const exercisesPerPage = 9;
+  const exercisesPerPage = 24;
 
   const safeExercises = Array.isArray(exercises) ? exercises : [];
-
   const indexOfLastExercise = currentPage * exercisesPerPage;
   const indexOfFirstExercise = indexOfLastExercise - exercisesPerPage;
   const currentExercises = safeExercises.slice(indexOfFirstExercise, indexOfLastExercise);
@@ -19,6 +18,39 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
     window.scrollTo({ top: 1800, behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    const fetchExercisesData = async () => {
+      try {
+        const pageSize = 25;      // current API max
+        const targetCount = 50;   // keep your overall cap at 50
+        const requests = [];
+
+        for (let skip = 0; skip < targetCount; skip += pageSize) {
+          const url =
+            bodyPart === 'all'
+              ? `https://exercisedb.p.rapidapi.com/exercises?limit=${pageSize}&skip=${skip}`
+              : `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(
+                  bodyPart
+                )}?limit=${pageSize}&skip=${skip}`;
+
+          requests.push(fetchData(url, exerciseOptions));
+        }
+
+        const results = await Promise.all(requests);
+        const merged = results.flat();
+
+        setExercises(Array.isArray(merged) ? merged.slice(0, targetCount) : []);
+        setCurrentPage(1);
+      } catch (error) {
+        console.error('Exercises error:', error);
+        setExercises([]);
+      }
+    };
+
+    fetchExercisesData();
+  }, [bodyPart, setExercises]);
+
+  /*
   useEffect(() => {
     const fetchExercisesData = async () => {
       try {
@@ -43,7 +75,7 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
     };
 
     fetchExercisesData();
-  }, [bodyPart, setExercises]);
+  }, [bodyPart, setExercises]); */
 
   return (
     <Box id="exercises" p="20px">

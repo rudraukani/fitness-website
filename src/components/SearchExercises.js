@@ -26,6 +26,43 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
   }, []);
 
   const handleSearch = async () => {
+    if (!search.trim()) return;
+
+    try {
+      const pageSize = 25;
+      const targetCount = 50;
+      const requests = [];
+
+      for (let skip = 0; skip < targetCount; skip += pageSize) {
+        requests.push(
+          fetchData(
+            `https://exercisedb.p.rapidapi.com/exercises?limit=${pageSize}&skip=${skip}`,
+            exerciseOptions
+          )
+        );
+      }
+
+      const results = await Promise.all(requests);
+      const exercisesData = results.flat();
+
+      const searchedExercises = exercisesData.filter(
+        (item) =>
+          item.name?.toLowerCase().includes(search.toLowerCase()) ||
+          item.target?.toLowerCase().includes(search.toLowerCase()) ||
+          item.equipment?.toLowerCase().includes(search.toLowerCase()) ||
+          item.bodyPart?.toLowerCase().includes(search.toLowerCase())
+      );
+
+      setExercises(searchedExercises);
+      setSearch('');
+    } catch (error) {
+      console.error('Search error:', error);
+      setExercises([]);
+    }
+  };
+
+  /*
+  const handleSearch = async () => {
     if (search) {
       try {
         const exercisesData = await fetchData(
@@ -47,7 +84,7 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
         console.error('Search error:', error);
       }
     }
-  };
+  }; */
 
   return (
     <Stack alignItems="center" mt="0.5rem" justifyContent="center" p="20px">
