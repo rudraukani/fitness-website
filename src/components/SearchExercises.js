@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Stack, TextField } from '@mui/material';
-
+import { colors } from "./colors";
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import HorizontalScrollbar from './HorizontalScrollbar';
 
@@ -75,8 +75,10 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
         <Button
           variant="contained"
           sx={{
-            bgcolor: '#d9d9d9',
-            color: '#000',
+            fontFamily: "'IBM PLEX SANS', sans-serif",
+            fontWeight: 600,
+            bgcolor: colors.bkg,
+            color: colors.main,
             borderRadius: '20px',
             width: '12%',
             height: '3.5rem',

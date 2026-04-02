@@ -6,13 +6,7 @@ export const exerciseOptions = {
   },
 };
 
-export const youtubeOptions = {
-  method: 'GET',
-  headers: {
-    'X-RapidAPI-Key': process.env.REACT_APP_YOUTUBE_KEY,
-    'X-RapidAPI-Host': 'youtube-search-and-download.p.rapidapi.com',
-  },
-};
+export const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY;
 
 export const fetchData = async (url, options, retries = 2) => {
   const res = await fetch(url, options);
