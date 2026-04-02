@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -12,6 +12,12 @@ import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import { useAuth } from "../../context/AuthContext";
+import {
+  addWorkoutLog,
+  deleteWorkoutLog,
+  getWorkoutLogs,
+} from "../../utils/workoutLogs";
 
 const exerciseOptions = [
   "Squats",
@@ -94,12 +100,30 @@ const inputSx = {
   },
 };
 
-const makeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
 const WorkoutLogs = () => {
+  const { currentUser } = useAuth();
   const [logs, setLogs] = useState([]);
   const [formData, setFormData] = useState(emptyLogForm);
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    const loadLogs = async () => {
+      if (!currentUser) {
+        setLogs([]);
+        return;
+      }
+
+      try {
+        const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+        setLogs(firestoreLogs);
+      } catch (error) {
+        console.error("Load workout logs error:", error);
+        setLogs([]);
+      }
+    };
+
+    loadLogs();
+  }, [currentUser]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -108,7 +132,7 @@ const WorkoutLogs = () => {
     }));
   };
 
-  const handleSubmitLog = () => {
+  const handleSubmitLog = async () => {
     const trimmedData = {
       logDate: formData.logDate.trim(),
       exercise: formData.exercise.trim(),
@@ -138,23 +162,52 @@ const WorkoutLogs = () => {
       return;
     }
 
-    const newLog = {
-      id: makeId(),
-      ...trimmedData,
-    };
+    if (!currentUser) {
+      setFormError("Please log in to save workout logs.");
+      return;
+    }
 
-    setLogs((prev) => [newLog, ...prev]);
-    setFormData(emptyLogForm);
-    setFormError("");
+    try {
+      await addWorkoutLog(currentUser.uid, {
+        logDate: trimmedData.logDate,
+        exercise: {
+          id: "",
+          name: trimmedData.exercise,
+        },
+        equipment: trimmedData.equipment,
+        category: trimmedData.category,
+        sets: trimmedData.sets,
+        reps: trimmedData.reps,
+        weight: trimmedData.weight,
+        weightUnit: trimmedData.weightUnit,
+        minutes: trimmedData.minutes,
+        seconds: trimmedData.seconds,
+      });
+
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+      setLogs(firestoreLogs);
+      setFormData(emptyLogForm);
+      setFormError("");
+    } catch (error) {
+      console.error("Save workout log error:", error);
+      setFormError("Failed to save workout log.");
+    }
   };
 
-  const handleDeleteLog = (logId) => {
-    setLogs((prev) => prev.filter((log) => log.id !== logId));
+  const handleDeleteLog = async (logId) => {
+    if (!currentUser) return;
+
+    try {
+      await deleteWorkoutLog(currentUser.uid, logId);
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+      setLogs(firestoreLogs);
+    } catch (error) {
+      console.error("Delete workout log error:", error);
+    }
   };
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Typography
           sx={{
@@ -180,7 +233,6 @@ const WorkoutLogs = () => {
         </Typography>
       </Box>
 
-      {/* Summary Cards */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -220,9 +272,7 @@ const WorkoutLogs = () => {
             <Typography sx={{ fontWeight: 700 }}>Latest Duration</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {logs[0]
-              ? `${logs[0].minutes}m ${logs[0].seconds}s`
-              : "-"}
+            {logs[0] ? `${logs[0].minutes}m ${logs[0].seconds}s` : "-"}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Time from latest workout log
@@ -230,7 +280,6 @@ const WorkoutLogs = () => {
         </Box>
       </Stack>
 
-      {/* Log Form */}
       <Box
         sx={{
           mb: 4,
@@ -418,7 +467,6 @@ const WorkoutLogs = () => {
         </Stack>
       </Box>
 
-      {/* Logs List */}
       {logs.length === 0 ? (
         <Box
           sx={{
@@ -460,7 +508,7 @@ const WorkoutLogs = () => {
                         color: "#111",
                       }}
                     >
-                      {log.exercise}
+                      {log.exercise?.name || log.exercise}
                     </Typography>
 
                     <Chip

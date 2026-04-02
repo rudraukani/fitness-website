@@ -2,10 +2,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Home from './pages/Home';
-import Explore from './pages/Explore';
-import Account from './pages/Account';
 import ExerciseDetail from './pages/ExerciseDetail';
+import Account from './pages/Account';
 import Navbar from './components/Navbar';
+<<<<<<< Updated upstream
 import Favorites from './pages/Favorites';
 import UserAccount from './pages/userpages/UserAccount';
 
@@ -61,3 +61,37 @@ export default App;
   //     <Footer />
   //   </>
   // ); 
+=======
+import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
+
+const App = () => {
+  return (
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/account" element={<Account />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exercise/:id"
+          element={
+            <ProtectedRoute>
+              <ExerciseDetail />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+      <Footer />
+    </>
+  );
+};
+
+export default App;
+>>>>>>> Stashed changes

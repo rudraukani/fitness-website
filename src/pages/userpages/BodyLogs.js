@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -12,6 +12,8 @@ import AccessibilityNewRoundedIcon from "@mui/icons-material/AccessibilityNewRou
 import MonitorWeightRoundedIcon from "@mui/icons-material/MonitorWeightRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import WaterDropRoundedIcon from "@mui/icons-material/WaterDropRounded";
+import { useAuth } from "../../context/AuthContext";
+import { addBodyMetric, getBodyMetrics } from "../../utils/bodyMetrics";
 
 const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
 
@@ -52,6 +54,7 @@ const inputSx = {
 };
 
 const BodyLogs = () => {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState(emptyBodyMetricsForm);
   const [savedMetrics, setSavedMetrics] = useState(null);
   const [formError, setFormError] = useState("");
@@ -71,6 +74,7 @@ const BodyLogs = () => {
 
   const savedBMI = useMemo(() => {
     if (!savedMetrics) return "";
+
     const heightCm = parseFloat(savedMetrics.height);
     const weightKg = parseFloat(savedMetrics.weight);
 
@@ -83,6 +87,41 @@ const BodyLogs = () => {
     return bmi.toFixed(2);
   }, [savedMetrics]);
 
+  useEffect(() => {
+    const loadMetrics = async () => {
+      if (!currentUser) {
+        setSavedMetrics(null);
+        return;
+      }
+
+      try {
+        const firestoreMetrics = await getBodyMetrics(currentUser.uid);
+        const latestMetric = firestoreMetrics[0] || null;
+
+        setSavedMetrics(latestMetric);
+
+        if (latestMetric) {
+          setFormData({
+            height: latestMetric.height || "",
+            weight: latestMetric.weight || "",
+            age: latestMetric.age || "",
+            gender: latestMetric.gender || "",
+            dailyStepGoal: latestMetric.dailyStepGoal || "",
+            caloriesIntakeGoal: latestMetric.caloriesIntakeGoal || "",
+            waterIntakeGoal: latestMetric.waterIntakeGoal || "",
+          });
+        } else {
+          setFormData(emptyBodyMetricsForm);
+        }
+      } catch (error) {
+        console.error("Load body metrics error:", error);
+        setSavedMetrics(null);
+      }
+    };
+
+    loadMetrics();
+  }, [currentUser]);
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -90,7 +129,7 @@ const BodyLogs = () => {
     }));
   };
 
-  const handleSubmitMetrics = () => {
+  const handleSubmitMetrics = async () => {
     const trimmedData = {
       height: formData.height.trim(),
       weight: formData.weight.trim(),
@@ -114,13 +153,26 @@ const BodyLogs = () => {
       return;
     }
 
-    setSavedMetrics(trimmedData);
-    setFormError("");
+    if (!currentUser) {
+      setFormError("Please log in to save body metrics.");
+      return;
+    }
+
+    try {
+      await addBodyMetric(currentUser.uid, trimmedData);
+      const firestoreMetrics = await getBodyMetrics(currentUser.uid);
+      const latestMetric = firestoreMetrics[0] || null;
+
+      setSavedMetrics(latestMetric);
+      setFormError("");
+    } catch (error) {
+      console.error("Save body metrics error:", error);
+      setFormError("Failed to save body metrics.");
+    }
   };
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Typography
           sx={{
@@ -146,7 +198,6 @@ const BodyLogs = () => {
         </Typography>
       </Box>
 
-      {/* Summary Cards */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -199,7 +250,9 @@ const BodyLogs = () => {
             <Typography sx={{ fontWeight: 700 }}>Water Goal</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {savedMetrics?.waterIntakeGoal ? `${savedMetrics.waterIntakeGoal} L` : "-"}
+            {savedMetrics?.waterIntakeGoal
+              ? `${savedMetrics.waterIntakeGoal} L`
+              : "-"}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Daily water intake target
@@ -207,7 +260,6 @@ const BodyLogs = () => {
         </Box>
       </Stack>
 
-      {/* Metrics Form */}
       <Box sx={{ ...panelSx, mb: 4 }}>
         <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, mb: 1 }}>
           Add Body Metrics
@@ -290,7 +342,9 @@ const BodyLogs = () => {
               label="Daily Step Goal"
               fullWidth
               value={formData.dailyStepGoal}
-              onChange={(e) => handleInputChange("dailyStepGoal", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("dailyStepGoal", e.target.value)
+              }
               sx={inputSx}
             />
 
@@ -309,7 +363,9 @@ const BodyLogs = () => {
             label="Water Intake Goal (L)"
             fullWidth
             value={formData.waterIntakeGoal}
-            onChange={(e) => handleInputChange("waterIntakeGoal", e.target.value)}
+            onChange={(e) =>
+              handleInputChange("waterIntakeGoal", e.target.value)
+            }
             sx={inputSx}
           />
 
@@ -342,7 +398,6 @@ const BodyLogs = () => {
         </Stack>
       </Box>
 
-      {/* Saved Metrics Display */}
       {savedMetrics ? (
         <Box sx={panelSx}>
           <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, mb: 2 }}>
@@ -386,7 +441,8 @@ const BodyLogs = () => {
               <strong>Daily Step Goal:</strong> {savedMetrics.dailyStepGoal}
             </Typography>
             <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Calories Intake Goal:</strong> {savedMetrics.caloriesIntakeGoal}
+              <strong>Calories Intake Goal:</strong>{" "}
+              {savedMetrics.caloriesIntakeGoal}
             </Typography>
             <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
               <strong>Water Intake Goal:</strong> {savedMetrics.waterIntakeGoal} L

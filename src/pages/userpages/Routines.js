@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -12,10 +12,16 @@ import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import { useAuth } from "../../context/AuthContext";
+import {
+  addRoutine,
+  updateRoutine,
+  deleteRoutine,
+  getRoutines,
+} from "../../utils/routines";
 
 const emptyRoutineForm = {
   title: "",
@@ -62,6 +68,7 @@ const inputSx = {
 const makeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const Routines = () => {
+  const { currentUser } = useAuth();
   const [routines, setRoutines] = useState([]);
   const [savedRoutineIds, setSavedRoutineIds] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -81,12 +88,44 @@ const Routines = () => {
     equipment: "",
   });
 
-  const handleToggleSave = (routineId) => {
-    setSavedRoutineIds((prev) =>
-      prev.includes(routineId)
-        ? prev.filter((id) => id !== routineId)
-        : [...prev, routineId]
-    );
+  const loadRoutinesFromFirestore = async () => {
+    if (!currentUser) {
+      setRoutines([]);
+      setSavedRoutineIds([]);
+      return;
+    }
+
+    try {
+      const firestoreRoutines = await getRoutines(currentUser.uid);
+      setRoutines(firestoreRoutines);
+      setSavedRoutineIds(
+        firestoreRoutines.filter((routine) => routine.saved).map((routine) => routine.id)
+      );
+    } catch (error) {
+      console.error("Load routines error:", error);
+      setRoutines([]);
+      setSavedRoutineIds([]);
+    }
+  };
+
+  useEffect(() => {
+    loadRoutinesFromFirestore();
+  }, [currentUser]);
+
+  const handleToggleSave = async (routineId) => {
+    if (!currentUser) return;
+
+    const routine = routines.find((item) => item.id === routineId);
+    if (!routine) return;
+
+    try {
+      await updateRoutine(currentUser.uid, routineId, {
+        saved: !routine.saved,
+      });
+      await loadRoutinesFromFirestore();
+    } catch (error) {
+      console.error("Toggle save routine error:", error);
+    }
   };
 
   const handleRoutineInputChange = (field, value) => {
@@ -132,7 +171,7 @@ const Routines = () => {
     );
   };
 
-  const handleCreateRoutine = () => {
+  const handleCreateRoutine = async () => {
     const trimmedRoutine = {
       title: newRoutine.title.trim(),
       level: newRoutine.level.trim(),
@@ -154,38 +193,55 @@ const Routines = () => {
       return;
     }
 
-    const createdRoutine = {
-      id: makeId(),
-      ...trimmedRoutine,
-      exercises: routineExercises,
-    };
-
-    setRoutines((prev) => [createdRoutine, ...prev]);
-    setNewRoutine(emptyRoutineForm);
-    setExerciseForm(emptyExerciseForm);
-    setRoutineExercises([]);
-    setFormError("");
-    setShowCreateForm(false);
-    setViewingRoutineId(null);
-  };
-
-  const handleDeleteRoutine = (routineId) => {
-    setRoutines((prev) => prev.filter((routine) => routine.id !== routineId));
-    setSavedRoutineIds((prev) => prev.filter((id) => id !== routineId));
-
-    if (viewingRoutineId === routineId) {
-      setViewingRoutineId(null);
+    if (!currentUser) {
+      setFormError("Please log in to save routines.");
+      return;
     }
 
-    if (editExerciseState.routineId === routineId) {
-      setEditExerciseState({
-        routineId: null,
-        exerciseId: null,
-        name: "",
-        sets: "",
-        reps: "",
-        equipment: "",
+    try {
+      await addRoutine(currentUser.uid, {
+        ...trimmedRoutine,
+        exercises: routineExercises,
+        saved: false,
       });
+
+      await loadRoutinesFromFirestore();
+
+      setNewRoutine(emptyRoutineForm);
+      setExerciseForm(emptyExerciseForm);
+      setRoutineExercises([]);
+      setFormError("");
+      setShowCreateForm(false);
+      setViewingRoutineId(null);
+    } catch (error) {
+      console.error("Create routine error:", error);
+      setFormError("Failed to save routine.");
+    }
+  };
+
+  const handleDeleteRoutine = async (routineId) => {
+    if (!currentUser) return;
+
+    try {
+      await deleteRoutine(currentUser.uid, routineId);
+      await loadRoutinesFromFirestore();
+
+      if (viewingRoutineId === routineId) {
+        setViewingRoutineId(null);
+      }
+
+      if (editExerciseState.routineId === routineId) {
+        setEditExerciseState({
+          routineId: null,
+          exerciseId: null,
+          name: "",
+          sets: "",
+          reps: "",
+          equipment: "",
+        });
+      }
+    } catch (error) {
+      console.error("Delete routine error:", error);
     }
   };
 
@@ -201,32 +257,38 @@ const Routines = () => {
     });
   };
 
-  const handleDeleteExerciseFromRoutine = (routineId, exerciseId) => {
-    setRoutines((prev) =>
-      prev.map((routine) => {
-        if (routine.id !== routineId) return routine;
+  const handleDeleteExerciseFromRoutine = async (routineId, exerciseId) => {
+    if (!currentUser) return;
 
-        return {
-          ...routine,
-          exercises: routine.exercises.filter(
-            (exercise) => exercise.id !== exerciseId
-          ),
-        };
-      })
+    const routine = routines.find((item) => item.id === routineId);
+    if (!routine) return;
+
+    const updatedExercises = routine.exercises.filter(
+      (exercise) => exercise.id !== exerciseId
     );
 
-    if (
-      editExerciseState.routineId === routineId &&
-      editExerciseState.exerciseId === exerciseId
-    ) {
-      setEditExerciseState({
-        routineId: null,
-        exerciseId: null,
-        name: "",
-        sets: "",
-        reps: "",
-        equipment: "",
+    try {
+      await updateRoutine(currentUser.uid, routineId, {
+        exercises: updatedExercises,
       });
+
+      await loadRoutinesFromFirestore();
+
+      if (
+        editExerciseState.routineId === routineId &&
+        editExerciseState.exerciseId === exerciseId
+      ) {
+        setEditExerciseState({
+          routineId: null,
+          exerciseId: null,
+          name: "",
+          sets: "",
+          reps: "",
+          equipment: "",
+        });
+      }
+    } catch (error) {
+      console.error("Delete exercise from routine error:", error);
     }
   };
 
@@ -259,7 +321,9 @@ const Routines = () => {
     }));
   };
 
-  const saveEditedExercise = () => {
+  const saveEditedExercise = async () => {
+    if (!currentUser) return;
+
     const trimmedExercise = {
       name: editExerciseState.name.trim(),
       sets: editExerciseState.sets.trim(),
@@ -271,22 +335,25 @@ const Routines = () => {
       return;
     }
 
-    setRoutines((prev) =>
-      prev.map((routine) => {
-        if (routine.id !== editExerciseState.routineId) return routine;
+    const routine = routines.find((item) => item.id === editExerciseState.routineId);
+    if (!routine) return;
 
-        return {
-          ...routine,
-          exercises: routine.exercises.map((exercise) =>
-            exercise.id === editExerciseState.exerciseId
-              ? { ...exercise, ...trimmedExercise }
-              : exercise
-          ),
-        };
-      })
+    const updatedExercises = routine.exercises.map((exercise) =>
+      exercise.id === editExerciseState.exerciseId
+        ? { ...exercise, ...trimmedExercise }
+        : exercise
     );
 
-    cancelEditExercise();
+    try {
+      await updateRoutine(currentUser.uid, routine.id, {
+        exercises: updatedExercises,
+      });
+
+      await loadRoutinesFromFirestore();
+      cancelEditExercise();
+    } catch (error) {
+      console.error("Edit exercise in routine error:", error);
+    }
   };
 
   const handleAddExerciseToExistingRoutineInput = (routineId, field, value) => {
@@ -299,7 +366,9 @@ const Routines = () => {
     }));
   };
 
-  const handleAddExerciseToExistingRoutine = (routineId) => {
+  const handleAddExerciseToExistingRoutine = async (routineId) => {
+    if (!currentUser) return;
+
     const currentForm = addExerciseForms[routineId] || emptyExerciseForm;
 
     const trimmedExercise = {
@@ -313,26 +382,28 @@ const Routines = () => {
       return;
     }
 
+    const routine = routines.find((item) => item.id === routineId);
+    if (!routine) return;
+
     const newExercise = {
       id: makeId(),
       ...trimmedExercise,
     };
 
-    setRoutines((prev) =>
-      prev.map((routine) =>
-        routine.id === routineId
-          ? {
-              ...routine,
-              exercises: [...routine.exercises, newExercise],
-            }
-          : routine
-      )
-    );
+    try {
+      await updateRoutine(currentUser.uid, routineId, {
+        exercises: [...routine.exercises, newExercise],
+      });
 
-    setAddExerciseForms((prev) => ({
-      ...prev,
-      [routineId]: emptyExerciseForm,
-    }));
+      await loadRoutinesFromFirestore();
+
+      setAddExerciseForms((prev) => ({
+        ...prev,
+        [routineId]: emptyExerciseForm,
+      }));
+    } catch (error) {
+      console.error("Add exercise to existing routine error:", error);
+    }
   };
 
   return (
