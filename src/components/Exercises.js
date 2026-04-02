@@ -51,6 +51,7 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
         sx={{
           fontSize: '1.5rem',
           fontWeight: 900,
+          paddingBottom: '1em',
         }}
       >
         RESULTS
