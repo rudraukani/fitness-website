@@ -6,8 +6,6 @@ export const exerciseOptions = {
   },
 };
 
-export const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY;
-
 export const fetchData = async (url, options, retries = 2) => {
   const res = await fetch(url, options);
 

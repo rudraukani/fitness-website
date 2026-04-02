@@ -3,11 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import { Alert,Box,Button,
   Chip,CircularProgress,Stack,Typography,
 } from '@mui/material';
-import { exerciseOptions, fetchData, YOUTUBE_API_KEY } from '../utils/fetchData';
+import { exerciseOptions, fetchData } from '../utils/fetchData';
 
 const ExerciseDetail = () => {
   const { id } = useParams();
-
+  const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY;
   const [exerciseDetail, setExerciseDetail] = useState(null);
   const [exerciseVideos, setExerciseVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,24 +38,27 @@ const ExerciseDetail = () => {
             const query = encodeURIComponent(`${detailData.name} exercise`);
             const youtubeUrl =
               `https://www.googleapis.com/youtube/v3/search` +
-              `?part=snippet&maxResults=6&q=${query}&type=video&key=${YOUTUBE_API_KEY}`;
+              `?part=snippet&maxResults=6&type=video&q=${query}&key=${YOUTUBE_API_KEY}`;
 
             const videoData = await fetchData(youtubeUrl);
 
-            const normalizedVideos = (videoData?.items || []).map((item) => ({
-              video: {
-                videoId: item.id?.videoId,
-                title: item.snippet?.title,
-                thumbnails: [
-                  {
-                    url:
-                      item.snippet?.thumbnails?.high?.url ||
-                      item.snippet?.thumbnails?.default?.url,
-                  },
-                ],
-                channelName: item.snippet?.channelTitle,
-              },
-            }));
+            const normalizedVideos = (videoData?.items || [])
+              .filter((item) => item?.id?.videoId)
+              .map((item) => ({
+                video: {
+                  videoId: item.id.videoId,
+                  title: item.snippet?.title || 'Untitled video',
+                  thumbnails: [
+                    {
+                      url:
+                        item.snippet?.thumbnails?.high?.url ||
+                        item.snippet?.thumbnails?.medium?.url ||
+                        item.snippet?.thumbnails?.default?.url,
+                    },
+                  ],
+                  channelName: item.snippet?.channelTitle || 'Unknown channel',
+                },
+              }));
 
             setExerciseVideos(normalizedVideos);
           } catch (videoError) {
@@ -67,27 +70,6 @@ const ExerciseDetail = () => {
         } else {
           setExerciseVideos([]);
         }
-
-        /*
-        if (detailData?.name) {
-          setVideoLoading(true);
-
-          try {
-            const videoData = await fetchData(
-              `${youtubeSearchUrl}/search?query=${encodeURIComponent(
-                `${detailData.name} exercise tutorial`
-              )}&type=v`,
-              youtubeOptions
-            );
-
-            setExerciseVideos(Array.isArray(videoData?.contents) ? videoData.contents : []);
-          } catch (videoError) {
-            console.error('Video fetch error:', videoError);
-            setExerciseVideos([]);
-          } finally {
-            setVideoLoading(false);
-          }
-        } */
 
       } catch (err) {
         console.error('Exercise detail fetch error:', err);
