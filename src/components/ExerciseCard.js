@@ -7,7 +7,6 @@ import {
   getUserFavorites,
 } from '../utils/favorites';
 import { colors } from "./colors";
-import { pink } from '@mui/material/colors';
 
 const ExerciseCard = ({ exercise, gifUrl }) => {
   const { currentUser } = useAuth();
