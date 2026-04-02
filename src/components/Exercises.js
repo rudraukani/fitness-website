@@ -66,7 +66,8 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
           <ExerciseCard
             key={exercise.id || idx}
             exercise={exercise}
-            gifUrl={gifMap?.[exercise.id]}
+            // gifUrl={gifMap?.[exercise.id]}
+            gifUrl={gifMap?.[exercise.name?.toLowerCase?.().trim()]}
           />
         ))}
       </Stack>

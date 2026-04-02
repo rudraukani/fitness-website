@@ -34,7 +34,14 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
 
   return (
     <Link className="exercise-card" to={`/exercise/${exercise.id}`}>
-      <img src={gifUrl || exercise.gifUrl} alt={exercise.name} loading="lazy" />
+      <img 
+        src={gifUrl || exercise.gifUrl} 
+        alt={exercise.name} 
+        loading="lazy" 
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', px: '10px', mt: '10px' }}>
         <Stack direction="row">
