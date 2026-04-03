@@ -29,8 +29,8 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
     if (!search.trim()) return;
 
     try {
-      const pageSize = 25;
-      const targetCount = 50;
+      const pageSize = 24;
+      const targetCount = 40;
       const requests = [];
 
       for (let skip = 0; skip < targetCount; skip += pageSize) {
