@@ -8,7 +8,6 @@ import Favorites from './pages/Favorites';
 import Explore from './pages/Explore';
 
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import UserAccount from './pages/userpages/UserAccount';
@@ -20,66 +19,48 @@ import ProgressTracker from './pages/userpages/ProgressTracker';
 
 const App = () => {
   return (
-    <>
-      <Navbar />
+     <div className="app-div">
 
-      <Routes>
-        <Route path="/account" element={<Account />} />
+      <div className="navbar-div">
+        <Navbar />
+      </div>
 
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+      <div className="page-content">
+        <Routes>
+          <Route path="/account" element={<Account />} />
 
-        <Route
-          path="/exercise/:id"
-          element={
-            <ProtectedRoute>
-              <ExerciseDetail />
-            </ProtectedRoute>
-          }
-        />
+          <Route path="/" 
+          element={<ProtectedRoute><Home /></ProtectedRoute>}
+          />
 
-        <Route
-          path="/explore"
-          element={
-            <ProtectedRoute>
-              <Explore />
-            </ProtectedRoute>
-          }
-        />
+          <Route path="/exercise/:id" element={
+              <ProtectedRoute><ExerciseDetail /></ProtectedRoute>}
+          />
 
-        <Route
-          path="/favorites"
-          element={
-            <ProtectedRoute>
-              <Favorites />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/explore"
+            element={<ProtectedRoute> <Explore /></ProtectedRoute>}
+          />
 
-        <Route
-          path="/user"
-          element={
-            <ProtectedRoute>
-              <UserAccount />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<AccountOverview />} />
-          <Route path="routines" element={<Routines />} />
-          <Route path="workoutlogs" element={<WorkoutLogs />} />
-          <Route path="bodylogs" element={<BodyLogs />} />
-          <Route path="progresstracker" element={<ProgressTracker />} />
-        </Route>
-      </Routes>
+          <Route
+            path="/favorites" 
+            element={<ProtectedRoute><Favorites /></ProtectedRoute>}
+          />
 
-      <Footer />
-    </>
+          <Route
+            path="/user"
+            element={<ProtectedRoute> <UserAccount /> </ProtectedRoute>}
+          >
+            <Route index element={<AccountOverview />} />
+            <Route path="routines" element={<Routines />} />
+            <Route path="workoutlogs" element={<WorkoutLogs />} />
+            <Route path="bodylogs" element={<BodyLogs />} />
+            <Route path="progresstracker" element={<ProgressTracker />} />
+          </Route>
+
+        </Routes>
+      </div>
+    </div>
   );
 };
 

@@ -6,7 +6,7 @@ const ProtectedRoute = ({ children }) => {
   const authContext = useAuth();
 
   if (!authContext) {
-    return null;
+    return <div>Loading...</div>;
   }
 
   const { currentUser } = authContext;
