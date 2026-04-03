@@ -4,7 +4,7 @@ import { Box, Stack, Typography, Pagination } from '@mui/material';
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import ExerciseCard from './ExerciseCard';
 
-const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
+const Exercises = ({ exercises, bodyPart, setExercises, gifMap, isSearching }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const exercisesPerPage = 24;
 
@@ -19,54 +19,127 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
   };
 
   useEffect(() => {
+    if (isSearching) return;
     let cancelled = false;
 
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const fetchExercisesData = async () => {
       try {
+
+                let finalExercises = [];
+
+        if (bodyPart === 'all') {
+          const apiPageSize = 10; // cap for Basic plan
+          const maxTotal = 40; // total cap
+          const delayMs = 250;
+
+          let offset = 0;
+          let allExercises = [];
+          let hasMore = true;
+
+          while (hasMore && !cancelled && allExercises.length < maxTotal) {
+            const batch = await fetchData(
+              `https://exercisedb.p.rapidapi.com/exercises?limit=${apiPageSize}&offset=${offset}`,
+              exerciseOptions
+            );
+
+            if (!Array.isArray(batch) || batch.length === 0) {
+              hasMore = false;
+              break;
+            }
+
+            const existingIds = new Set(allExercises.map((exercise) => String(exercise.id)));
+            const uniqueBatch = batch.filter(
+              (exercise) => !existingIds.has(String(exercise.id))
+            );
+
+            if (uniqueBatch.length === 0) {
+              hasMore = false;
+              break;
+            }
+
+            allExercises = allExercises.concat(uniqueBatch);
+
+            if (batch.length < apiPageSize) {
+              hasMore = false;
+              break;
+            }
+
+            offset += apiPageSize;
+
+            await sleep(delayMs);
+          }
+
+          finalExercises = allExercises.slice(0, maxTotal);
+        } else {
+          const bodyPartExercises = await fetchData(
+            `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(bodyPart)}`,
+            exerciseOptions
+          );
+
+          finalExercises = Array.isArray(bodyPartExercises) ? bodyPartExercises : [];
+        }
+
+        if (!cancelled) {
+          setExercises(finalExercises);
+          setCurrentPage(1);
+        }
+
+        /*
         const apiPageSize = 10; // cap for Basic plan
         const maxTotal = 40; // total cap
         const delayMs = 250;
 
-        let skip = 0;
+        let offset = 0;
         let allExercises = [];
         let hasMore = true;
 
         while (hasMore && !cancelled && allExercises.length < maxTotal) {
           const url =
             bodyPart === 'all'
-              ? `https://exercisedb.p.rapidapi.com/exercises?limit=${apiPageSize}&skip=${skip}`
+              ? `https://exercisedb.p.rapidapi.com/exercises?limit=${apiPageSize}&offset=${offset}`
               : `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(
                   bodyPart
-                )}?limit=${apiPageSize}&skip=${skip}`;
+                )}?limit=${apiPageSize}&offset=${offset}`;
 
-          const batch = await fetchData(url, exerciseOptions);
+          const batch = await fetchData(url, exerciseOptions); 
+          
 
           if (!Array.isArray(batch) || batch.length === 0) {
             hasMore = false;
             break;
           }
 
-          allExercises = allExercises.concat(batch);
+          const existingIds = new Set(allExercises.map((exercise) => String(exercise.id)));
+          const uniqueBatch = batch.filter(
+            (exercise) => !existingIds.has(String(exercise.id))
+          );
+
+          if (uniqueBatch.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          allExercises = allExercises.concat(uniqueBatch);
 
           if (batch.length < apiPageSize) {
             hasMore = false;
             break;
           }
 
-          skip += apiPageSize;
+          offset += apiPageSize;
 
           await sleep(delayMs);
         }
 
-        // Trim to maxTotal just in case we slightly overshoot
+        // trim to maxTotal just in case we slightly overshoot
         const finalExercises = allExercises.slice(0, maxTotal);
 
         if (!cancelled) {
           setExercises(finalExercises);
           setCurrentPage(1);
-        }
+        } */
       } catch (error) {
         console.error('Exercises error:', error);
         if (!cancelled) setExercises([]);
@@ -78,103 +151,11 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
     return () => {
       cancelled = true;
     };
-  }, [bodyPart, setExercises]);
-
-  /* 
-  useEffect(() => {
-  let cancelled = false;
-
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
+  }, [bodyPart, isSearching, setExercises]);
   
-  const fetchExercisesData = async () => {
-    try {
-      const pageSize = 10; // basic plan cap per response
-      const delayMs = 250; // delay between calls 
-      let skip = 0;
-      let allExercises = [];
-      let hasMore = true;
-
-      while (hasMore && !cancelled) {
-        const url =
-          bodyPart === 'all'
-            ? `https://exercisedb.p.rapidapi.com/exercises?limit=${pageSize}&skip=${skip}`
-            : `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(
-                bodyPart
-              )}?limit=${pageSize}&skip=${skip}`;
-
-        const batch = await fetchData(url, exerciseOptions);
-
-        if (!Array.isArray(batch) || batch.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        allExercises = allExercises.concat(batch);
-
-        // If fewer than pageSize came back, we've reached the end
-        if (batch.length < pageSize) {
-          hasMore = false;
-          break;
-        }
-
-        skip += pageSize;
-
-        // small delay helps avoid bursty traffic / 429s
-        await sleep(delayMs);
-      }
-
-      if (!cancelled) {
-        setExercises(allExercises);
-        setCurrentPage(1);
-      }
-    } catch (error) {
-      console.error('Exercises error:', error);
-      if (!cancelled) setExercises([]);
-    }
-    };
-
-    fetchExercisesData();
-
-    return () => {
-      cancelled = true;
-    };
-    }, [bodyPart, setExercises]);
-  */
-
-/*
   useEffect(() => {
-    const fetchExercisesData = async () => {
-      try {
-        const pageSize = 25;      // current API max
-        const targetCount = 50;   // keep your overall cap at 50
-        const requests = [];
-
-        for (let skip = 0; skip < targetCount; skip += pageSize) {
-          const url =
-            bodyPart === 'all'
-              ? `https://exercisedb.p.rapidapi.com/exercises?limit=${pageSize}&skip=${skip}`
-              : `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(
-                  bodyPart
-                )}?limit=${pageSize}&skip=${skip}`;
-
-          requests.push(fetchData(url, exerciseOptions));
-        }
-
-        const results = await Promise.all(requests);
-        const merged = results.flat();
-
-        setExercises(Array.isArray(merged) ? merged.slice(0, targetCount) : []);
-        setCurrentPage(1);
-      } catch (error) {
-        console.error('Exercises error:', error);
-        setExercises([]);
-      }
-    };
-
-    fetchExercisesData();
-  }, [bodyPart, setExercises]);
-*/
+    setCurrentPage(1);
+  }, [exercises]);
 
   return (
     <Box id="exercises" p="20px">
@@ -198,7 +179,6 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap }) => {
           <ExerciseCard
             key={exercise.id || idx}
             exercise={exercise}
-            // gifUrl={gifMap?.[exercise.id]}
             gifUrl={gifMap?.[exercise.name?.toLowerCase?.().trim()]}
           />
         ))}

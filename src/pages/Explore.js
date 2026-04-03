@@ -9,7 +9,8 @@ function Explore() {
   const [exercises, setExercises] = useState([]);
   const [bodyPart, setBodyPart] = useState('all');
   const [gifMap, setGifMap] = useState({});
-  
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     const loadGifs = async () => {
       const gifs = await fetchGifMap();
@@ -39,6 +40,7 @@ function Explore() {
           setExercises={setExercises}
           bodyPart={bodyPart}
           setBodyPart={setBodyPart}
+          setIsSearching={setIsSearching}
         />
       </div>
       <div className="results-div">
@@ -47,6 +49,7 @@ function Explore() {
         exercises={exercises}
         bodyPart={bodyPart}
         gifMap={gifMap}
+        isSearching={isSearching}
       />
       </div>
     </div>

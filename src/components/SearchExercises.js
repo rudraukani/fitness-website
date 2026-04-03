@@ -4,7 +4,7 @@ import { colors } from "./colors";
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import HorizontalScrollbar from './HorizontalScrollbar';
 
-const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
+const SearchExercises = ({ setExercises, bodyPart, setBodyPart, setIsSearching }) => {
   const [search, setSearch] = useState('');
   const [bodyParts, setBodyParts] = useState([]);
 
@@ -25,34 +25,94 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
     fetchExerciseData();
   }, []);
 
+  useEffect(() => {
+    setIsSearching(false);
+  }, [bodyPart]);
+
   const handleSearch = async () => {
     if (!search.trim()) return;
 
-    try {
-      const pageSize = 24;
-      const targetCount = 40;
-      const requests = [];
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const query = search.trim().toLowerCase();
 
-      for (let skip = 0; skip < targetCount; skip += pageSize) {
-        requests.push(
-          fetchData(
-            `https://exercisedb.p.rapidapi.com/exercises?limit=${pageSize}&skip=${skip}`,
-            exerciseOptions
-          )
+    const scoreExercise = (exerciseName, q) => {
+      const name = (exerciseName || '').toLowerCase().trim();
+      if (!name) return 0;
+
+      if (name === q) return 100;
+      if (name.startsWith(q)) return 90;
+      if (name.includes(q)) return 75;
+
+      const qWords = q.split(/\s+/).filter(Boolean);
+      let score = 0;
+
+      qWords.forEach((word) => {
+        if (name === word) score += 30;
+        else if (name.startsWith(word)) score += 20;
+        else if (name.includes(word)) score += 10;
+      });
+
+      return score;
+    };
+
+    try {
+      let exercisesData = [];
+
+      try {
+        const nameResults = await fetchData(
+          `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(search.trim())}`,
+          exerciseOptions
         );
+
+        if (Array.isArray(nameResults) && nameResults.length > 0) {
+          exercisesData = nameResults;
+        }
+      } catch (error) {
+        console.log('Name endpoint failed, falling back to paginated search...');
       }
 
-      const results = await Promise.all(requests);
-      const exercisesData = results.flat();
+      if (exercisesData.length === 0) {
+        const apiPageSize = 10;
+        const maxTotal = 100;
+        let offset = 0;
+        let allExercises = [];
+        let hasMore = true;
 
-      const searchedExercises = exercisesData.filter(
-        (item) =>
-          item.name?.toLowerCase().includes(search.toLowerCase()) ||
-          item.target?.toLowerCase().includes(search.toLowerCase()) ||
-          item.equipment?.toLowerCase().includes(search.toLowerCase()) ||
-          item.bodyPart?.toLowerCase().includes(search.toLowerCase())
-      );
+        while (hasMore && allExercises.length < maxTotal) {
+          const batch = await fetchData(
+            `https://exercisedb.p.rapidapi.com/exercises?limit=${apiPageSize}&offset=${offset}`,
+            exerciseOptions
+          );
 
+          if (!Array.isArray(batch) || batch.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          allExercises = allExercises.concat(batch);
+
+          if (batch.length < apiPageSize) {
+            hasMore = false;
+            break;
+          }
+
+          offset += apiPageSize;
+          await sleep(200);
+        }
+
+        exercisesData = allExercises;
+      }
+
+      const searchedExercises = exercisesData
+        .map((item) => ({
+          ...item,
+          _score: scoreExercise(item.name, query),
+        }))
+        .filter((item) => item._score > 0)
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 8);
+      
+      setIsSearching(true);
       setExercises(searchedExercises);
       setSearch('');
     } catch (error) {
@@ -60,31 +120,6 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
       setExercises([]);
     }
   };
-
-  /*
-  const handleSearch = async () => {
-    if (search) {
-      try {
-        const exercisesData = await fetchData(
-          'https://exercisedb.p.rapidapi.com/exercises',
-          exerciseOptions
-        );
-
-        const searchedExercises = exercisesData.filter(
-          (item) =>
-            item.name.toLowerCase().includes(search.toLowerCase()) ||
-            item.target.toLowerCase().includes(search.toLowerCase()) ||
-            item.equipment.toLowerCase().includes(search.toLowerCase()) ||
-            item.bodyPart.toLowerCase().includes(search.toLowerCase())
-        );
-
-        setExercises(searchedExercises);
-        setSearch('');
-      } catch (error) {
-        console.error('Search error:', error);
-      }
-    }
-  }; */
 
   return (
     <Stack alignItems="center" mt="0.5rem" justifyContent="center" p="20px">
@@ -141,119 +176,3 @@ const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
 };
 
 export default SearchExercises;
-
-/* 
-import React, { useEffect, useState } from 'react';
-import { Box, Button, Stack, TextField, Typography } from '@mui/material';
-
-import { exerciseOptions, fetchData } from '../utils/fetchData';
-import HorizontalScrollbar from './HorizontalScrollbar';
-
-const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
-  const [search, setSearch] = useState('');
-  const [bodyParts, setBodyParts] = useState([]);
-
-  useEffect(() => {
-    const fetchExercisesData = async () => {
-      try {
-        const bodyPartsData = await fetchData(
-          'https://exercisedb.p.rapidapi.com/exercises/bodyPartList',
-          exerciseOptions
-        );
-
-        setBodyParts(['all', ...(Array.isArray(bodyPartsData) ? bodyPartsData : [])]);
-      } catch (error) {
-        console.error('Body parts error:', error);
-        setBodyParts(['all']);
-      }
-    };
-
-    fetchExercisesData();
-  }, []);
-
-  const handleSearch = async () => {
-    if (!search.trim()) return;
-
-    try {
-      const exercisesData = await fetchData(
-        'https://exercisedb.p.rapidapi.com/exercises?limit=0',
-        exerciseOptions
-      );
-
-      const list = Array.isArray(exercisesData) ? exercisesData : [];
-
-      const searchedExercises = list.filter(
-        (item) =>
-          item.name?.toLowerCase().includes(search.toLowerCase()) ||
-          item.target?.toLowerCase().includes(search.toLowerCase()) ||
-          item.equipment?.toLowerCase().includes(search.toLowerCase()) ||
-          item.bodyPart?.toLowerCase().includes(search.toLowerCase())
-      );
-
-      window.scrollTo({ top: 1800, left: 100, behavior: 'smooth' });
-      setSearch('');
-      setExercises(searchedExercises);
-    } catch (error) {
-      console.error('Search error:', error);
-      setExercises([]);
-    }
-  };
-
-  return (
-    <Stack alignItems="center" mt="37px" justifyContent="center" p="20px">
-      <Typography
-        fontWeight={700}
-        sx={{ fontSize: { lg: '44px', xs: '30px' } }}
-        mb="49px"
-        textAlign="center"
-      >
-        Awesome Exercises You <br /> Should Know
-      </Typography>
-
-      <Box position="relative" mb="72px">
-        <TextField
-          height="76px"
-          sx={{
-            input: { fontWeight: '700', border: 'none', borderRadius: '4px' },
-            width: { lg: '1170px', xs: '350px' },
-            backgroundColor: '#fff',
-            borderRadius: '40px'
-          }}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search Exercises"
-          type="text"
-        />
-
-        <Button
-          className="search-btn"
-          sx={{
-            bgcolor: '#FF2625',
-            color: '#fff',
-            textTransform: 'none',
-            width: { lg: '173px', xs: '80px' },
-            height: '56px',
-            position: 'absolute',
-            right: '0px',
-            fontSize: { lg: '20px', xs: '14px' }
-          }}
-          onClick={handleSearch}
-        >
-          Search
-        </Button>
-      </Box>
-
-      <Box sx={{ position: 'relative', width: '100%', p: '20px' }}>
-        <HorizontalScrollbar
-          data={bodyParts}
-          bodyParts
-          setBodyPart={setBodyPart}
-          bodyPart={bodyPart}
-        />
-      </Box>
-    </Stack>
-  );
-};
-
-export default SearchExercises;
-*/
