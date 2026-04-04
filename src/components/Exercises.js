@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Stack, Typography, Pagination, Button } from '@mui/material';
-
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import ExerciseCard from './ExerciseCard';
 import { colors } from "./colors";
@@ -144,7 +143,7 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap, isSearching }) =
             height: 'max-content',
             px: 2,
           }}
-        >Body Part</Button>
+        >Category</Button>
 
         <Box width="1em" />
 

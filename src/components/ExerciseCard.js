@@ -62,7 +62,10 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
 
     try {
       setFavLoading(true);
-      await addFavoriteExercise(currentUser.uid, exercise);
+      await addFavoriteExercise(currentUser.uid, {
+        ...exercise,
+        gifUrl: gifUrl || exercise.gifUrl || '',
+      });
       setFavorite(true);
     } catch (error) {
       console.error('Favorite button error:', error);

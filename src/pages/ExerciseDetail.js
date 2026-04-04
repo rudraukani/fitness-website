@@ -4,6 +4,7 @@ import { Alert,Box,Button,
   Chip,CircularProgress,Stack,Typography,
 } from '@mui/material';
 import { exerciseOptions, fetchData } from '../utils/fetchData';
+import { fetchGifMap } from '../utils/fetchGifs';
 
 const ExerciseDetail = () => {
   const { id } = useParams();
@@ -13,6 +14,7 @@ const ExerciseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [videoLoading, setVideoLoading] = useState(false);
   const [error, setError] = useState('');
+  const [gifMap, setGifMap] = useState({});
 
   useEffect(() => {
     const fetchExerciseDetails = async () => {
@@ -32,7 +34,6 @@ const ExerciseDetail = () => {
         setExerciseDetail(detailData);
 
         if (detailData?.name && YOUTUBE_API_KEY) {
-          setVideoLoading(true);
 
           try {
             const query = encodeURIComponent(`${detailData.name} exercise`);
@@ -81,6 +82,19 @@ const ExerciseDetail = () => {
 
     fetchExerciseDetails();
   }, [id]);
+
+  useEffect(() => {
+    const loadGifMap = async () => {
+      try {
+        const map = await fetchGifMap();
+        setGifMap(map);
+      } catch (err) {
+        console.error('Failed to load GIF map:', err);
+      }
+    };
+
+    loadGifMap();
+  }, []);
 
   const topVideos = useMemo(() => {
     return exerciseVideos
@@ -140,7 +154,7 @@ const ExerciseDetail = () => {
       >
         <Box
           component="img"
-          src={exerciseDetail.gifUrl}
+          src={gifMap[exerciseDetail.name?.toLowerCase?.().trim()] || exerciseDetail.gifUrl}
           alt={exerciseDetail.name}
           sx={{
             width: { xs: '100%', sm: '420px', md: '480px' },
