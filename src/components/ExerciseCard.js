@@ -7,6 +7,8 @@ import {
   getUserFavorites,
 } from '../utils/favorites';
 import { colors } from "./colors";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import BookmarkAddedIcon from "@mui/icons-material/BookmarkAdded";
 
 const ExerciseCard = ({ exercise, gifUrl }) => {
   const { currentUser } = useAuth();
@@ -15,6 +17,7 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
   const [favorite, setFavorite] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const [favoriteStatusLoading, setFavoriteStatusLoading] = useState(true);
+  // const targets = [exercise.target, ...(exercise.secondaryMuscles || [])].filter(Boolean);
 
   useEffect(() => {
     const loadFavoriteStatus = async () => {
@@ -93,48 +96,124 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
       
       <Box sx={{height: "1.5em",}} />
 
-      <Stack direction="row" width="100%" justifyContent="space-evenly">
-        <Button
-          sx={{
-            fontFamily: "'IBM Plex Sans', sans-serif",
-            color: '#fff',
-            background: colors.highlight,
-            fontSize: '0.9em',
-            borderRadius: '20px',
-            textTransform: 'capitalize',
-          }}
-        >
-          {exercise.bodyPart}
-        </Button>
-
-        <Button
-          sx={{
-            fontFamily: "'IBM Plex Sans', sans-serif",
-            color: '#fff',
-            background: colors.highlight,
-            fontSize: '0.9em',
-            borderRadius: '20px',
-            textTransform: 'capitalize',
-          }}
-        >
-          {exercise.target}
-        </Button>
-
+      <Stack
+        direction="row"
+        width="100%"
+        spacing={1}
+        sx={{
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          flexWrap: 'nowrap',
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        }}
+      >
+        <Box sx={{height: "100%", width: 2,}} />
         <Button
           onClick={handleFavoriteClick}
           disabled={favLoading || favoriteStatusLoading || favorite}
           sx={{
             fontFamily: "'IBM Plex Sans', sans-serif",
             color: '#fff',
-            background: favorite ? '#4caf50' : '#1c1c1c',
-            fontSize: '0.9em',
+              '&.Mui-disabled': {
+                color: '#fff',
+                opacity: 1,
+              },
+              '&:hover': {
+                background: colors.pink,
+              },
+            flexShrink: 0,
+            minWidth: 'fit-content',
+            width: 'max-content',
+            px: 2,
+            background: colors.pink,
+            fontSize: '0.5em',
             borderRadius: '20px',
             textTransform: 'capitalize',
             opacity: favLoading || favoriteStatusLoading ? 0.7 : 1,
           }}
         >
-          {favorite ? 'Saved' : favLoading ? 'Saving...' : 'Favorite'}
+          {
+            favorite ? (<BookmarkAddedIcon color="inherit" />) : 
+            favLoading ? ('Saving...' ) : 
+            (<FavoriteIcon color="inherit" />)
+          }
         </Button>
+
+
+        <Button
+          sx={{
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            color: '#fff',
+            '&:hover': {
+                background: colors.highlight,
+              },
+            background: colors.highlight,
+            fontSize: '0.9em',
+            borderRadius: '20px',
+            textTransform: 'capitalize',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minWidth: 'fit-content',
+            width: 'max-content',
+            px: 2,
+          }}
+        >
+          {exercise.bodyPart}
+        </Button>
+
+      
+
+        
+        <Button
+          sx={{
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            color: '#fff',
+            '&:hover': {
+                background: colors.yellow,
+              },
+            background: colors.yellow,
+            fontSize: '0.9em',
+            borderRadius: '20px',
+            textTransform: 'capitalize',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minWidth: 'fit-content',
+            width: 'max-content',
+            px: 2,
+          }}
+        >
+          {exercise.target}
+        </Button>
+
+        {(exercise.secondaryMuscles || []).map((muscle) => (
+          <Button
+            key={muscle}
+            sx={{
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              color: '#fff',
+              '&:hover': {
+                background: colors.green,
+              },
+              background: colors.green,
+              fontSize: '0.9em',
+              borderRadius: '20px',
+              textTransform: 'capitalize',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              minWidth: 'fit-content',
+              width: 'max-content',
+              px: 2,
+            }}
+          >
+            {muscle}
+          </Button>
+        ))}
+
+        <Box sx={{height: "100%", width: 2,}} />
+     
       </Stack>
       
       <Box sx={{height: "1em",}} />
