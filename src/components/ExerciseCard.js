@@ -4,13 +4,14 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import {
   addFavoriteExercise,
+  removeFavoriteExercise,
   getUserFavorites,
 } from '../utils/favorites';
 import { colors } from "./colors";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import BookmarkAddedIcon from "@mui/icons-material/BookmarkAdded";
 
-const ExerciseCard = ({ exercise, gifUrl }) => {
+const ExerciseCard = ({ exercise, gifUrl, onFavoriteChange }) => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -47,6 +48,7 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
     loadFavoriteStatus();
   }, [currentUser, exercise?.id]);
 
+  /*
   const handleFavoriteClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -73,6 +75,43 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
     } finally {
       setFavLoading(false);
     }
+  }; */
+  const handleFavoriteClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!currentUser) {
+      navigate('/account');
+      return;
+    }
+
+    try {
+      setFavLoading(true);
+
+      if (favorite) {
+        await removeFavoriteExercise(currentUser.uid, String(exercise.id));
+        setFavorite(false);
+
+        if (onFavoriteChange) {
+          onFavoriteChange(String(exercise.id), false);
+        }
+      } else {
+        await addFavoriteExercise(currentUser.uid, {
+          ...exercise,
+          gifUrl: gifUrl || exercise.gifUrl || '',
+        });
+        setFavorite(true);
+
+        if (onFavoriteChange) {
+          onFavoriteChange(String(exercise.id), true);
+        }
+      }
+    } catch (error) {
+      console.error('Favorite button error:', error);
+      alert('Could not update favorite right now. Please try again.');
+    } finally {
+      setFavLoading(false);
+    }
   };
 
   return (
@@ -91,9 +130,6 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
           src={gifUrl || exercise.gifUrl}
           alt={exercise.name}
           loading="lazy"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
         />
       </Box>
       
@@ -116,7 +152,7 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
         <Box sx={{height: "100%", width: 2,}} />
         <Button
           onClick={handleFavoriteClick}
-          disabled={favLoading || favoriteStatusLoading || favorite}
+          disabled={favLoading || favoriteStatusLoading }
           sx={{
             fontFamily: "'IBM Plex Sans', sans-serif",
             color: '#fff',
@@ -138,11 +174,13 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
             opacity: favLoading || favoriteStatusLoading ? 0.7 : 1,
           }}
         >
-          {
-            favorite ? (<BookmarkAddedIcon color="inherit" />) : 
-            favLoading ? ('Saving...' ) : 
-            (<FavoriteIcon color="inherit" />)
-          }
+          {favLoading ? (
+            '...'
+          ) : favorite ? (
+            <BookmarkAddedIcon color="inherit" />
+          ) : (
+            <FavoriteIcon color="inherit" />
+          )}
         </Button>
 
 

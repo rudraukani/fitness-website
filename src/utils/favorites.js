@@ -9,7 +9,8 @@ import {
 import { db } from '../firebase';
 
 export const addFavoriteExercise = async (uid, exercise) => {
-  const favRef = doc(db, 'users', uid, 'favorites', exercise.id);
+  //const favRef = doc(db, 'users', uid, 'favorites', exercise.id);
+  const favRef = doc(db, 'users', uid, 'favorites', String(exercise.id));
 
   await setDoc(favRef, {
     id: exercise.id,
@@ -18,12 +19,14 @@ export const addFavoriteExercise = async (uid, exercise) => {
     target: exercise.target || '',
     equipment: exercise.equipment || '',
     gifUrl: exercise.gifUrl || '',
+    secondaryMuscles: exercise.secondaryMuscles || [],
     createdAt: serverTimestamp(),
   });
 };
 
 export const removeFavoriteExercise = async (uid, exerciseId) => {
-  const favRef = doc(db, 'users', uid, 'favorites', exerciseId);
+  const favRef = doc(db, 'users', uid, 'favorites', String(exerciseId));
+  // const favRef = doc(db, 'users', uid, 'favorites', exerciseId);
   await deleteDoc(favRef);
 };
 

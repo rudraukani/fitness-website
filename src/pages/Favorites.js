@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
-import { getUserFavorites } from '../utils/favorites';
+import { getUserFavorites, removeFavoriteExercise } from '../utils/favorites';
 import ExerciseCard from '../components/ExerciseCard';
 import { colors } from '../components/colors';
 import GymBackground from '../assets/images/gym2.jpg';
@@ -10,6 +10,14 @@ const Favorites = () => {
   const { currentUser } = useAuth();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const handleFavoriteChange = (exerciseId, isNowFavorite) => {
+    if (!isNowFavorite) {
+      setFavorites((prev) =>
+        prev.filter((exercise) => String(exercise.id) !== String(exerciseId))
+      );
+    }
+  };
 
   useEffect(() => {
     const loadFavorites = async () => {
@@ -136,6 +144,7 @@ const Favorites = () => {
                 key={exercise.id || idx}
                 exercise={exercise}
                 gifUrl={exercise.gifUrl}
+                onFavoriteChange={handleFavoriteChange}
               />
             ))}
           </Stack>
