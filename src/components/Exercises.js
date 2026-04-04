@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Stack, Typography, Pagination } from '@mui/material';
+import { Box, Stack, Typography, Pagination, Button } from '@mui/material';
 
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import ExerciseCard from './ExerciseCard';
+import { colors } from "./colors";
 
 const Exercises = ({ exercises, bodyPart, setExercises, gifMap, isSearching }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,7 +28,7 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap, isSearching }) =
     const fetchExercisesData = async () => {
       try {
 
-                let finalExercises = [];
+        let finalExercises = [];
 
         if (bodyPart === 'all') {
           const apiPageSize = 10; // cap for Basic plan
@@ -86,60 +87,6 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap, isSearching }) =
           setCurrentPage(1);
         }
 
-        /*
-        const apiPageSize = 10; // cap for Basic plan
-        const maxTotal = 40; // total cap
-        const delayMs = 250;
-
-        let offset = 0;
-        let allExercises = [];
-        let hasMore = true;
-
-        while (hasMore && !cancelled && allExercises.length < maxTotal) {
-          const url =
-            bodyPart === 'all'
-              ? `https://exercisedb.p.rapidapi.com/exercises?limit=${apiPageSize}&offset=${offset}`
-              : `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${encodeURIComponent(
-                  bodyPart
-                )}?limit=${apiPageSize}&offset=${offset}`;
-
-          const batch = await fetchData(url, exerciseOptions); 
-          
-
-          if (!Array.isArray(batch) || batch.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          const existingIds = new Set(allExercises.map((exercise) => String(exercise.id)));
-          const uniqueBatch = batch.filter(
-            (exercise) => !existingIds.has(String(exercise.id))
-          );
-
-          if (uniqueBatch.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          allExercises = allExercises.concat(uniqueBatch);
-
-          if (batch.length < apiPageSize) {
-            hasMore = false;
-            break;
-          }
-
-          offset += apiPageSize;
-
-          await sleep(delayMs);
-        }
-
-        // trim to maxTotal just in case we slightly overshoot
-        const finalExercises = allExercises.slice(0, maxTotal);
-
-        if (!cancelled) {
-          setExercises(finalExercises);
-          setCurrentPage(1);
-        } */
       } catch (error) {
         console.error('Exercises error:', error);
         if (!cancelled) setExercises([]);
@@ -159,15 +106,92 @@ const Exercises = ({ exercises, bodyPart, setExercises, gifMap, isSearching }) =
 
   return (
     <Box id="exercises" p="20px">
-      <Typography
+
+      <Box 
         sx={{
-          fontSize: '1.5rem',
-          fontWeight: 900,
-          paddingBottom: '1em',
+          width: "100%",
+          display: "flex",
         }}
       >
-        RESULTS
-      </Typography>
+        <Typography
+          sx={{
+            fontSize: '1.5rem',
+            fontWeight: 900,
+            paddingBottom: '1em',
+          }}
+        >
+          RESULTS
+        </Typography>
+
+        <Box width="1.5em" />
+
+        <Button
+          sx={{
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            color: '#fff',
+            '&:hover': {
+                background: colors.highlight,
+              },
+            background: colors.highlight,
+            fontSize: '0.9em',
+            borderRadius: '20px',
+            textTransform: 'capitalize',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minWidth: 'fit-content',
+            width: 'max-content',
+            minHeight: 'fit-content',
+            height: 'max-content',
+            px: 2,
+          }}
+        >Body Part</Button>
+
+        <Box width="1em" />
+
+        <Button
+          sx={{
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            color: '#fff',
+            '&:hover': {
+                background: colors.yellow,
+              },
+            background: colors.yellow,
+            fontSize: '0.9em',
+            borderRadius: '20px',
+            textTransform: 'capitalize',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minWidth: 'fit-content',
+            width: 'max-content',
+            minHeight: 'fit-content',
+            height: 'max-content',
+            px: 2,
+          }}
+        >Primary Target Muscle</Button>
+
+        <Box width="1em" />
+        
+        <Button
+          sx={{
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            color: '#fff',
+            '&:hover': {
+                background: colors.green,
+              },
+            background: colors.green,
+            fontSize: '0.9em',
+            borderRadius: '20px',
+            textTransform: 'capitalize',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minWidth: 'fit-content',
+            width: 'max-content',
+            minHeight: 'fit-content',
+            height: 'max-content',
+            px: 2,
+          }}
+        >Secondary Target Muscle</Button>
+      </Box>
 
       <Stack
         direction="row"
