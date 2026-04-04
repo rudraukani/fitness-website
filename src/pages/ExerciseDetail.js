@@ -5,6 +5,8 @@ import { Alert,Box,Button,
 } from '@mui/material';
 import { exerciseOptions, fetchData } from '../utils/fetchData';
 import { fetchGifMap } from '../utils/fetchGifs';
+import { colors } from '../components/colors';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const ExerciseDetail = () => {
   const { id } = useParams();
@@ -129,7 +131,12 @@ const ExerciseDetail = () => {
           {error || 'Could not load this exercise.'}
         </Alert>
 
-        <Button component={Link} to="/explore" variant="contained">
+        <Button component={Link} to="/explore" variant="contained"
+          sx={{ 
+            color: colors.main, 
+            backgroundColor: colors.bkg, 
+          }}
+        >
           Back to Explore
         </Button>
       </Box>
@@ -137,40 +144,62 @@ const ExerciseDetail = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: '1200px', mx: 'auto', px: { xs: 2, md: 4 }, py: 5 }}>
-      <Button
-        component={Link}
-        to="/explore"
-        variant="outlined"
-        sx={{ mb: 4 }}
-      >
-        Back to Explore
-      </Button>
+    <Box sx={{ 
+      maxWidth: '1200px', 
+      mx: 'auto', 
+      px: { xs: 2, md: 4 }, 
+      py: 5,
+    }}>
+      <div className="exercise-detail-bg-img"></div>
 
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={5}
         alignItems={{ xs: 'center', md: 'flex-start' }}
       >
-        <Box
-          component="img"
-          src={gifMap[exerciseDetail.name?.toLowerCase?.().trim()] || exerciseDetail.gifUrl}
-          alt={exerciseDetail.name}
-          sx={{
-            width: { xs: '100%', sm: '420px', md: '480px' },
-            maxWidth: '100%',
-            borderRadius: 4,
-            backgroundColor: '#fff',
-            objectFit: 'cover',
-            boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
-          }}
-        />
+        <Stack 
+          direction='column'
+        >
+          <Button
+            component={Link}
+            to="/explore"
+            startIcon={<ArrowBackIcon />}
+            sx={{ 
+              maxWidth: 'fit-content',
+              px: 2,
+              py: 1,
+              mb: 4, 
+              fontFamily: '"IBM Plex Sans", sans-serif',
+              color: colors.main, 
+              backgroundColor: colors.bkg, 
+              borderRadius: '15px',
+            }}
+          >
+            Explore
+          </Button>
+
+          <Box
+            component="img"
+            src={gifMap[exerciseDetail.name?.toLowerCase?.().trim()] || exerciseDetail.gifUrl}
+            alt={exerciseDetail.name}
+            sx={{
+              width: { xs: '100%', sm: '420px', md: '480px' },
+              maxWidth: '100%',
+              borderRadius: 4,
+              backgroundColor: '#fff',
+              objectFit: 'cover',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
+            }}
+          />
+        </Stack>
 
         <Box sx={{ flex: 1, width: '100%' }}>
           <Typography
             variant="h3"
             sx={{
+              fontFamily: '"Contrail One", sans-serif',
               textTransform: 'capitalize',
+              color: colors.bkg,
               fontWeight: 700,
               mb: 2,
               fontSize: { xs: '2rem', md: '3rem' },
@@ -179,37 +208,59 @@ const ExerciseDetail = () => {
             {exerciseDetail.name}
           </Typography>
 
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ mb: 3, lineHeight: 1.9, fontSize: '1.05rem' }}
-          >
-            {exerciseDetail.name} is a great exercise for building strength and improving
-            control. It primarily targets your{' '}
-            <strong>{exerciseDetail.target}</strong> using{' '}
-            <strong>{exerciseDetail.equipment}</strong>.
-          </Typography>
-
           <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mb: 4 }}>
             <Chip
-              label={`Body Part: ${exerciseDetail.bodyPart}`}
-              color="primary"
-              sx={{ textTransform: 'capitalize' }}
+              label={`Category: ${exerciseDetail.bodyPart}`}
+              sx={{ 
+                textTransform: 'capitalize', 
+                color: '#fff',
+                backgroundColor: colors.highlight, 
+              }}
             />
             <Chip
-              label={`Target: ${exerciseDetail.target}`}
-              color="secondary"
-              sx={{ textTransform: 'capitalize' }}
+              label={`Primary Target Muscle: ${exerciseDetail.target}`}
+              sx={{ 
+                textTransform: 'capitalize', 
+                color: '#fff',
+                backgroundColor: colors.yellow, 
+              }}
             />
+
+            {(exerciseDetail.secondaryMuscles || []).length > 0 && (
+              <Chip
+                label={`Secondary Target Muscle: ${
+                  exerciseDetail.secondaryMuscles
+                    .map(m => m.charAt(0).toUpperCase() + m.slice(1))
+                    .join(', ')
+                }`}
+                sx={{
+                  textTransform: 'capitalize',
+                  color: '#fff',
+                  backgroundColor: colors.green,
+                  fontFamily: "'IBM Plex Sans', sans-serif",
+                }}
+              />
+            )}
+
             <Chip
               label={`Equipment: ${exerciseDetail.equipment}`}
-              sx={{ textTransform: 'capitalize' }}
+              sx={{ 
+                textTransform: 'capitalize',
+                backgroundColor: colors.highlight,
+                color: '#fff',
+              }}
             />
           </Stack>
 
           {exerciseDetail.instructions && Array.isArray(exerciseDetail.instructions) && (
             <Box sx={{ mb: 2 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+              <Typography variant="h5" 
+                sx={{ 
+                  fontWeight: 700, 
+                  mb: 2, 
+                  color: colors.bkg, 
+                  fontFamily: '"IBM Plex Sans", sans-serif',
+                }}>
                 Instructions
               </Typography>
 
@@ -220,10 +271,11 @@ const ExerciseDetail = () => {
                     sx={{
                       p: 2,
                       borderRadius: 3,
-                      backgroundColor: '#f8f9fb',
+                      backgroundColor: colors.bkg,
+                      fontFamily: '"IBM Plex Sans", sans-serif',
                     }}
                   >
-                    <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+                    <Typography sx={{ fontWeight: 600, mb: 0.5, fontFamily: '"IBM Plex Sans", sans-serif', }}>
                       Step {index + 1}
                     </Typography>
                     <Typography color="text.secondary">{step}</Typography>
@@ -239,6 +291,8 @@ const ExerciseDetail = () => {
         <Typography
           variant="h4"
           sx={{
+            fontFamily: '"IBM Plex Sans", sans-serif',
+            color: colors.bkg,
             fontWeight: 700,
             mb: 3,
           }}
@@ -279,7 +333,7 @@ const ExerciseDetail = () => {
                   color: 'inherit',
                   borderRadius: 4,
                   overflow: 'hidden',
-                  backgroundColor: '#fff',
+                  backgroundColor: colors.bkg,
                   boxShadow: '0 10px 24px rgba(0,0,0,0.08)',
                   transition: 'transform 0.2s ease',
                   '&:hover': {

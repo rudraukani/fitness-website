@@ -63,3 +63,14 @@
   background: var(--main);
   background-color: white;
 }
+
+.exercise-detail-bg-img {
+  position: fixed;
+    inset: 0;
+    background-image: url('./assets/images/gym2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(10px);
+    z-index: -2;
+}

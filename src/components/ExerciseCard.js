@@ -17,7 +17,7 @@ const ExerciseCard = ({ exercise, gifUrl }) => {
   const [favorite, setFavorite] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const [favoriteStatusLoading, setFavoriteStatusLoading] = useState(true);
-  // const targets = [exercise.target, ...(exercise.secondaryMuscles || [])].filter(Boolean);
+
 
   useEffect(() => {
     const loadFavoriteStatus = async () => {
