@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert,Box,Button,
   Chip,CircularProgress,Stack,Typography,
 } from '@mui/material';
@@ -7,9 +7,18 @@ import { exerciseOptions, fetchData } from '../utils/fetchData';
 import { fetchGifMap } from '../utils/fetchGifs';
 import { colors } from '../components/colors';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useAuth } from '../context/AuthContext';
+import {
+  addFavoriteExercise,
+  removeFavoriteExercise,
+  getUserFavorites,
+} from '../utils/favorites';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
 
 const ExerciseDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY;
   const [exerciseDetail, setExerciseDetail] = useState(null);
   const [exerciseVideos, setExerciseVideos] = useState([]);
@@ -17,6 +26,11 @@ const ExerciseDetail = () => {
   const [videoLoading, setVideoLoading] = useState(false);
   const [error, setError] = useState('');
   const [gifMap, setGifMap] = useState({});
+
+  const { currentUser } = useAuth();
+  const [favorite, setFavorite] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+  const [favoriteStatusLoading, setFavoriteStatusLoading] = useState(true);  
 
   useEffect(() => {
     const fetchExerciseDetails = async () => {
@@ -98,6 +112,71 @@ const ExerciseDetail = () => {
     loadGifMap();
   }, []);
 
+  useEffect(() => {
+      const loadFavoriteStatus = async () => {
+        if (!currentUser || !exerciseDetail?.id) {
+          setFavorite(false);
+          setFavoriteStatusLoading(false);
+          return;
+        }
+  
+        try {
+          setFavoriteStatusLoading(true);
+  
+          const userFavs = await getUserFavorites(currentUser.uid);
+          const alreadySaved = userFavs.some(
+            (fav) => String(fav.id) === String(exerciseDetail.id)
+          );
+  
+          setFavorite(alreadySaved);
+        } catch (error) {
+          console.error('Load favorite status error:', error);
+          setFavorite(false);
+        } finally {
+          setFavoriteStatusLoading(false);
+        }
+      };
+  
+      loadFavoriteStatus();
+    }, [currentUser, exerciseDetail?.id]);
+  
+  const handleFavoriteClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!exerciseDetail) return;
+
+    if (!currentUser) {
+      navigate('/account');
+      return;
+    }
+
+    try {
+      setFavLoading(true);
+
+      if (favorite) {
+        await removeFavoriteExercise(currentUser.uid, String(exerciseDetail.id));
+        setFavorite(false);
+
+      } else {
+        await addFavoriteExercise(currentUser.uid, {
+          ...exerciseDetail,
+          gifUrl:
+            gifMap[exerciseDetail.name?.toLowerCase?.().trim()] ||
+            exerciseDetail.gifUrl ||
+            '',
+        });
+        setFavorite(true);
+
+      }
+    } catch (error) {
+      console.error('Favorite button error:', error);
+      alert('Could not update favorite right now. Please try again.');
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
   const topVideos = useMemo(() => {
     return exerciseVideos
       .map((item) => item?.video)
@@ -160,23 +239,64 @@ const ExerciseDetail = () => {
         <Stack 
           direction='column'
         >
-          <Button
-            component={Link}
-            to="/explore"
-            startIcon={<ArrowBackIcon />}
-            sx={{ 
-              maxWidth: 'fit-content',
-              px: 2,
-              py: 1,
-              mb: 4, 
-              fontFamily: '"IBM Plex Sans", sans-serif',
-              color: colors.main, 
-              backgroundColor: colors.bkg, 
-              borderRadius: '15px',
-            }}
-          >
-            Explore
-          </Button>
+          <Stack direction='row'>
+
+            <Button
+              component={Link}
+              to="/explore"
+              startIcon={<ArrowBackIcon />}
+              sx={{ 
+                maxWidth: 'fit-content',
+                px: 2,
+                py: 1,
+                mb: 4, 
+                fontFamily: '"IBM Plex Sans", sans-serif',
+                color: colors.main, 
+                backgroundColor: colors.bkg, 
+                borderRadius: '15px',
+              }}
+            >
+              Explore
+            </Button>
+
+            <Box width='1em' />
+
+            <Button
+              onClick={handleFavoriteClick}
+              disabled={favLoading || favoriteStatusLoading }
+              sx={{
+                fontFamily: "'IBM Plex Sans', sans-serif",
+                color: '#fff',
+                  '&.Mui-disabled': {
+                    color: '#fff',
+                    opacity: 1,
+                  },
+                  '&:hover': {
+                    background: colors.pink,
+                  },
+                flexShrink: 0,
+                minWidth: 'fit-content',
+                width: 'max-content',
+                minHeight: 'fit-content',
+                height: 'max-content',
+                px: 2,
+                py: 1,
+                background: colors.pink,
+                fontSize: '0.5em',
+                borderRadius: '20px',
+                textTransform: 'capitalize',
+                opacity: favLoading || favoriteStatusLoading ? 0.7 : 1,
+              }}
+            >
+              {favLoading ? (
+                '...'
+              ) : favorite ? (
+                <BookmarkAddedIcon color="inherit" />
+              ) : (
+                <FavoriteIcon color="inherit" />
+              )}
+            </Button>
+          </Stack>
 
           <Box
             component="img"

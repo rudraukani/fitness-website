@@ -48,34 +48,6 @@ const ExerciseCard = ({ exercise, gifUrl, onFavoriteChange }) => {
     loadFavoriteStatus();
   }, [currentUser, exercise?.id]);
 
-  /*
-  const handleFavoriteClick = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!currentUser) {
-      navigate('/account');
-      return;
-    }
-
-    if (favorite) {
-      return;
-    }
-
-    try {
-      setFavLoading(true);
-      await addFavoriteExercise(currentUser.uid, {
-        ...exercise,
-        gifUrl: gifUrl || exercise.gifUrl || '',
-      });
-      setFavorite(true);
-    } catch (error) {
-      console.error('Favorite button error:', error);
-      alert('Could not save favorite right now. Please try again.');
-    } finally {
-      setFavLoading(false);
-    }
-  }; */
   const handleFavoriteClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
