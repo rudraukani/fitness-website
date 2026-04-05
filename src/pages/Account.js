@@ -19,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 import { auth, provider } from "../firebase";
 
 import GymBackground from "../assets/images/gym2.jpg";
-import "./Account.css";
 import { colors } from "../components/colors";
 import { PestControlRodentSharp } from "@mui/icons-material";
 
