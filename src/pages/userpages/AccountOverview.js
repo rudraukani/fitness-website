@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
 import MonitorHeartRoundedIcon from "@mui/icons-material/MonitorHeartRounded";
@@ -7,6 +7,10 @@ import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartm
 import DirectionsRunRoundedIcon from "@mui/icons-material/DirectionsRunRounded";
 import WaterDropRoundedIcon from "@mui/icons-material/WaterDropRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import { useAuth } from "../../context/AuthContext";
+import { getRoutines } from "../../utils/routines";
+import { getWorkoutLogs } from "../../utils/workoutLogs";
+import { getBodyMetrics } from "../../utils/bodyMetrics";
 
 const infoCardSx = {
   flex: 1,
@@ -28,6 +32,67 @@ const panelSx = {
 };
 
 const AccountOverview = () => {
+  const { currentUser } = useAuth();
+
+  const [routines, setRoutines] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+
+  useEffect(() => {
+    const loadOverviewData = async () => {
+      if (!currentUser) {
+        setRoutines([]);
+        setLogs([]);
+        setMetrics(null);
+        return;
+      }
+
+      try {
+        const [routinesData, logsData, metricsData] = await Promise.all([
+          getRoutines(currentUser.uid),
+          getWorkoutLogs(currentUser.uid),
+          getBodyMetrics(currentUser.uid),
+        ]);
+
+        setRoutines(Array.isArray(routinesData) ? routinesData : []);
+        setLogs(Array.isArray(logsData) ? logsData : []);
+
+        if (Array.isArray(metricsData) && metricsData.length > 0) {
+          setMetrics(metricsData[metricsData.length - 1]);
+        } else {
+          setMetrics(null);
+        }
+      } catch (error) {
+        console.error("Overview load error:", error);
+        setRoutines([]);
+        setLogs([]);
+        setMetrics(null);
+      }
+    };
+
+    loadOverviewData();
+  }, [currentUser]);
+
+  const latestLog = logs.length > 0 ? logs[0] : null;
+
+  const displayedBMI = useMemo(() => {
+    const heightCm = parseFloat(metrics?.height);
+    const weightKg = parseFloat(metrics?.weight);
+
+    if (!heightCm || !weightKg || heightCm <= 0 || weightKg <= 0) {
+      return "-";
+    }
+
+    const heightMeters = heightCm / 100;
+    return (weightKg / (heightMeters * heightMeters)).toFixed(2);
+  }, [metrics]);
+
+  const dailyGoalStatus = useMemo(() => {
+    if (!metrics) return "Not Set";
+    if (routines.length > 0 || logs.length > 0) return "On Track";
+    return "Getting Started";
+  }, [metrics, routines.length, logs.length]);
+
   return (
     <Box sx={{ width: "100%" }}>
       {/* Header */}
@@ -127,7 +192,7 @@ const AccountOverview = () => {
             <Typography sx={{ fontWeight: 700 }}>My Routines</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            3
+            {routines.length}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Active workout routines
@@ -140,7 +205,7 @@ const AccountOverview = () => {
             <Typography sx={{ fontWeight: 700 }}>Workout Logs</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            12
+            {logs.length}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Recorded training sessions
@@ -153,7 +218,7 @@ const AccountOverview = () => {
             <Typography sx={{ fontWeight: 700 }}>Current BMI</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            23.8
+            {displayedBMI}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Based on saved body metrics
@@ -166,7 +231,7 @@ const AccountOverview = () => {
             <Typography sx={{ fontWeight: 700 }}>Daily Goal</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            On Track
+            {dailyGoalStatus}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Progress moving in the right direction
@@ -189,16 +254,40 @@ const AccountOverview = () => {
             flexWrap="wrap"
             sx={{ mb: 2.5 }}
           >
-            <Chip label="Goal: Muscle Gain" />
-            <Chip label="Focus: Strength + Consistency" />
-            <Chip label="Training Split: 4 Days / Week" />
-            <Chip label="Hydration Goal: 3 L / Day" />
+            <Chip label={`Goal: ${metrics ? "Health & Consistency" : "Not Set"}`} />
+            <Chip
+              label={`Focus: ${
+                routines[0]?.focus ? routines[0].focus : "No routine added yet"
+              }`}
+            />
+            <Chip
+              label={`Training Split: ${
+                routines[0]?.frequency ? routines[0].frequency : "Not Set"
+              }`}
+            />
+            <Chip
+              label={`Hydration Goal: ${
+                metrics?.waterIntakeGoal
+                  ? `${metrics.waterIntakeGoal} L / Day`
+                  : "Not Set"
+              }`}
+            />
           </Stack>
 
           <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
-            Your current fitness direction is focused on building strength,
-            following a consistent training schedule, and improving overall body
-            composition through better workout structure and daily habits.
+            {routines.length > 0 || logs.length > 0 || metrics ? (
+              <>
+                Your overview is now based on your real activity. Keep building
+                routines, logging workouts, and updating body metrics to get a
+                clearer picture of your fitness journey.
+              </>
+            ) : (
+              <>
+                You have not added enough fitness data yet. Start by creating a
+                routine, logging workouts, and entering your body metrics to
+                make this dashboard more useful.
+              </>
+            )}
           </Typography>
         </Box>
 
@@ -216,19 +305,19 @@ const AccountOverview = () => {
 
             <Stack spacing={1.2}>
               <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-                <strong>Height:</strong> 175 cm
+                <strong>Height:</strong> {metrics?.height ? `${metrics.height} cm` : "-"}
               </Typography>
               <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-                <strong>Weight:</strong> 73 kg
+                <strong>Weight:</strong> {metrics?.weight ? `${metrics.weight} kg` : "-"}
               </Typography>
               <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-                <strong>Age:</strong> 21
+                <strong>Age:</strong> {metrics?.age || "-"}
               </Typography>
               <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-                <strong>Gender:</strong> Male
+                <strong>Gender:</strong> {metrics?.gender || "-"}
               </Typography>
               <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-                <strong>BMI:</strong> 23.8
+                <strong>BMI:</strong> {displayedBMI}
               </Typography>
             </Stack>
           </Box>
@@ -245,7 +334,7 @@ const AccountOverview = () => {
                   <Typography sx={{ fontWeight: 700 }}>Daily Step Goal</Typography>
                 </Stack>
                 <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  10,000 steps
+                  {metrics?.dailyStepGoal || "-"}
                 </Typography>
               </Box>
 
@@ -257,7 +346,7 @@ const AccountOverview = () => {
                   </Typography>
                 </Stack>
                 <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  2,400 kcal
+                  {metrics?.caloriesIntakeGoal || "-"}
                 </Typography>
               </Box>
 
@@ -269,7 +358,9 @@ const AccountOverview = () => {
                   </Typography>
                 </Stack>
                 <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  3 Litres
+                  {metrics?.waterIntakeGoal
+                    ? `${metrics.waterIntakeGoal} Litres`
+                    : "-"}
                 </Typography>
               </Box>
             </Stack>
@@ -288,26 +379,46 @@ const AccountOverview = () => {
               Latest Workout Log
             </Typography>
 
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1.2}
-              useFlexGap
-              flexWrap="wrap"
-              sx={{ mb: 2 }}
-            >
-              <Chip label="Exercise: Squats" />
-              <Chip label="Category: Legs" />
-              <Chip label="Sets: 4" />
-              <Chip label="Reps: 10" />
-              <Chip label="Weight: 60 kg" />
-              <Chip label="Time: 18m 20s" />
-            </Stack>
+            {latestLog ? (
+              <>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.2}
+                  useFlexGap
+                  flexWrap="wrap"
+                  sx={{ mb: 2 }}
+                >
+                  <Chip
+                    label={`Exercise: ${
+                      latestLog.exercise?.name || latestLog.exercise || "-"
+                    }`}
+                  />
+                  <Chip label={`Category: ${latestLog.category || "-"}`} />
+                  <Chip label={`Sets: ${latestLog.sets || "-"}`} />
+                  <Chip label={`Reps: ${latestLog.reps || "-"}`} />
+                  <Chip
+                    label={`Weight: ${latestLog.weight || "-"} ${
+                      latestLog.weightUnit || ""
+                    }`}
+                  />
+                  <Chip
+                    label={`Time: ${latestLog.minutes || 0}m ${
+                      latestLog.seconds || 0
+                    }s`}
+                  />
+                </Stack>
 
-            <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
-              Your most recent session focused on lower body strength with a
-              structured squat workout. Keep logging sessions to monitor
-              consistency and progression over time.
-            </Typography>
+                <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
+                  Your latest logged workout is now shown here so you can quickly
+                  review your most recent activity and training volume.
+                </Typography>
+              </>
+            ) : (
+              <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
+                No workout logs available yet. Start logging your workouts to
+                see your latest session here.
+              </Typography>
+            )}
           </Box>
 
           <Box sx={{ ...panelSx, flex: 1, minWidth: "320px" }}>
@@ -315,37 +426,33 @@ const AccountOverview = () => {
               Routine Snapshot
             </Typography>
 
-            <Stack spacing={1.4}>
-              <Box
-                sx={{
-                  p: 1.8,
-                  borderRadius: "14px",
-                  background: "rgba(255,255,255,0.58)",
-                }}
-              >
-                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Legs Routine
-                </Typography>
-                <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  5 exercises added • Focused on lower body strength
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  p: 1.8,
-                  borderRadius: "14px",
-                  background: "rgba(255,255,255,0.58)",
-                }}
-              >
-                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Abs Routine
-                </Typography>
-                <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  4 exercises added • Focused on core and stability
-                </Typography>
-              </Box>
-            </Stack>
+            {routines.length > 0 ? (
+              <Stack spacing={1.4}>
+                {routines.slice(0, 2).map((routine) => (
+                  <Box
+                    key={routine.id}
+                    sx={{
+                      p: 1.8,
+                      borderRadius: "14px",
+                      background: "rgba(255,255,255,0.58)",
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
+                      {routine.title}
+                    </Typography>
+                    <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
+                      {routine.exercises?.length || 0} exercises added • Focus:{" "}
+                      {routine.focus || "Not Set"}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            ) : (
+              <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
+                No routines created yet. Add your first routine to preview it
+                here.
+              </Typography>
+            )}
           </Box>
         </Stack>
 
@@ -356,10 +463,20 @@ const AccountOverview = () => {
           </Typography>
 
           <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
-            You are building a strong foundation by combining structured
-            routines, consistent workout logging, and body metric tracking.
-            Keep focusing on gradual progress, daily movement, proper hydration,
-            and recovery to stay on track with your long-term goals.
+            {routines.length > 0 || logs.length > 0 || metrics ? (
+              <>
+                You are building a stronger data-driven fitness profile by
+                combining routines, workout logs, and body metrics. Keep
+                updating your activity regularly so your overview stays accurate
+                and meaningful.
+              </>
+            ) : (
+              <>
+                Once you start adding routines, workout logs, and body metrics,
+                this section will become a much more helpful summary of your
+                progress and consistency.
+              </>
+            )}
           </Typography>
         </Box>
       </Stack>
