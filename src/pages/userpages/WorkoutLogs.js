@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -7,71 +7,26 @@ import {
   TextField,
   Typography,
   Chip,
+  Divider,
 } from "@mui/material";
 import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import { useAuth } from "../../context/AuthContext";
 import {
   addWorkoutLog,
   deleteWorkoutLog,
   getWorkoutLogs,
 } from "../../utils/workoutLogs";
-
-const exerciseOptions = [
-  "Squats",
-  "Deadlift",
-  "Bench Press",
-  "Shoulder Press",
-  "Lat Pulldown",
-  "Bicep Curls",
-  "Tricep Pushdown",
-  "Leg Press",
-  "Lunges",
-  "Plank",
-  "Crunches",
-  "Running",
-  "Cycling",
-];
-
-const categoryOptions = [
-  "Chest",
-  "Back",
-  "Legs",
-  "Shoulders",
-  "Arms",
-  "Abs",
-  "Cardio",
-  "Full Body",
-];
-
-const equipmentOptions = [
-  "None",
-  "Dumbbells",
-  "Barbell",
-  "Machine",
-  "Cable",
-  "Kettlebell",
-  "Resistance Band",
-  "Bodyweight",
-  "Treadmill",
-  "Bike",
-];
+import { getRoutines } from "../../utils/routines";
 
 const weightUnitOptions = ["kg", "lbs"];
 
 const emptyLogForm = {
   logDate: "",
-  exercise: "",
-  equipment: "",
-  category: "",
-  sets: "",
-  reps: "",
-  weight: "",
-  weightUnit: "kg",
-  minutes: "",
-  seconds: "",
+  routineId: "",
 };
 
 const infoCardSx = {
@@ -100,65 +55,122 @@ const inputSx = {
   },
 };
 
+const exerciseCardSx = {
+  borderRadius: "18px",
+  padding: "16px",
+  background: "rgba(255,255,255,0.5)",
+  border: "1px solid rgba(255,255,255,0.18)",
+};
+
 const WorkoutLogs = () => {
   const { currentUser } = useAuth();
   const [logs, setLogs] = useState([]);
+  const [routines, setRoutines] = useState([]);
   const [formData, setFormData] = useState(emptyLogForm);
+  const [selectedRoutine, setSelectedRoutine] = useState(null);
+  const [exercisePerformance, setExercisePerformance] = useState({});
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    const loadLogs = async () => {
+    const loadData = async () => {
       if (!currentUser) {
         setLogs([]);
+        setRoutines([]);
         return;
       }
 
       try {
-        const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+        const [firestoreLogs, firestoreRoutines] = await Promise.all([
+          getWorkoutLogs(),
+          getRoutines(currentUser.uid),
+        ]);
+
         setLogs(firestoreLogs);
+        setRoutines(firestoreRoutines);
       } catch (error) {
-        console.error("Load workout logs error:", error);
+        console.error("Load workout data error:", error);
         setLogs([]);
+        setRoutines([]);
       }
     };
 
-    loadLogs();
+    loadData();
   }, [currentUser]);
+
+  const latestLog = logs[0];
+
+  const latestDurationLabel = useMemo(() => {
+    if (!latestLog?.routineSnapshot?.duration) return "-";
+    return latestLog.routineSnapshot.duration;
+  }, [latestLog]);
+
+  const latestRoutineLabel = useMemo(() => {
+    return latestLog?.routineTitle || "-";
+  }, [latestLog]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+
+    if (field === "routineId") {
+      const routine = routines.find((item) => item.id === value) || null;
+      setSelectedRoutine(routine);
+
+      const nextPerformance = {};
+      (routine?.exercises || []).forEach((exercise, index) => {
+        nextPerformance[index] = {
+          weight: "",
+          weightUnit: "kg",
+        };
+      });
+      setExercisePerformance(nextPerformance);
+    }
   };
+
+  const handleExercisePerformanceChange = (index, field, value) => {
+    setExercisePerformance((prev) => ({
+      ...prev,
+      [index]: {
+        ...prev[index],
+        [field]: value,
+      },
+    }));
+  };
+
+  const buildRoutineSnapshot = (routine) => ({
+    title: routine?.title || "",
+    level: routine?.level || "",
+    duration:
+      routine?.duration ||
+      [
+        routine?.durationValue || "",
+        routine?.durationUnit || "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    frequency:
+      routine?.frequency ||
+      [
+        routine?.frequencyValue || "",
+        routine?.frequencyUnit || "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    focus: routine?.focus || "",
+    notes: routine?.notes || routine?.description || "",
+    exercises: Array.isArray(routine?.exercises) ? routine.exercises : [],
+  });
 
   const handleSubmitLog = async () => {
     const trimmedData = {
       logDate: formData.logDate.trim(),
-      exercise: formData.exercise.trim(),
-      equipment: formData.equipment.trim(),
-      category: formData.category.trim(),
-      sets: formData.sets.trim(),
-      reps: formData.reps.trim(),
-      weight: formData.weight.trim(),
-      weightUnit: formData.weightUnit.trim(),
-      minutes: formData.minutes.trim(),
-      seconds: formData.seconds.trim(),
+      routineId: formData.routineId.trim(),
     };
 
-    if (
-      !trimmedData.logDate ||
-      !trimmedData.exercise ||
-      !trimmedData.equipment ||
-      !trimmedData.category ||
-      !trimmedData.sets ||
-      !trimmedData.reps ||
-      !trimmedData.weight ||
-      !trimmedData.weightUnit ||
-      !trimmedData.minutes ||
-      !trimmedData.seconds
-    ) {
-      setFormError("Please fill in all workout log fields before submitting.");
+    if (!trimmedData.logDate || !trimmedData.routineId || !selectedRoutine) {
+      setFormError("Please select a log date and routine before submitting.");
       return;
     }
 
@@ -167,26 +179,54 @@ const WorkoutLogs = () => {
       return;
     }
 
-    try {
-      await addWorkoutLog(currentUser.uid, {
-        logDate: trimmedData.logDate,
-        exercise: {
-          id: "",
-          name: trimmedData.exercise,
-        },
-        equipment: trimmedData.equipment,
-        category: trimmedData.category,
-        sets: trimmedData.sets,
-        reps: trimmedData.reps,
-        weight: trimmedData.weight,
-        weightUnit: trimmedData.weightUnit,
-        minutes: trimmedData.minutes,
-        seconds: trimmedData.seconds,
-      });
+    const exercises = selectedRoutine.exercises || [];
 
-      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+    for (let index = 0; index < exercises.length; index += 1) {
+      const exercise = exercises[index];
+      const requiresWeight = Boolean(exercise?.equipment?.trim());
+
+      if (requiresWeight) {
+        const enteredWeight = `${exercisePerformance[index]?.weight || ""}`.trim();
+        const enteredWeightUnit = `${exercisePerformance[index]?.weightUnit || ""}`.trim();
+
+        if (!enteredWeight || !enteredWeightUnit) {
+          setFormError(
+            `Please enter weight and unit for ${exercise.name || `exercise ${index + 1}`}.`
+          );
+          return;
+        }
+      }
+    }
+
+    try {
+      const payload = {
+        logDate: trimmedData.logDate,
+        routineId: selectedRoutine.id,
+        routineTitle: selectedRoutine.title || "",
+        routineSnapshot: buildRoutineSnapshot(selectedRoutine),
+        exercisePerformance: exercises.map((exercise, index) => ({
+          exerciseName: exercise?.name || "",
+          equipment: exercise?.equipment || "",
+          sets: exercise?.sets || "",
+          reps: exercise?.reps || "",
+          timeValue: exercise?.timeValue || "",
+          timeUnit: exercise?.timeUnit || "",
+          weight: exercise?.equipment
+            ? Number(exercisePerformance[index]?.weight || 0)
+            : 0,
+          weightUnit: exercise?.equipment
+            ? exercisePerformance[index]?.weightUnit || "kg"
+            : "",
+        })),
+      };
+
+      await addWorkoutLog(payload);
+
+      const firestoreLogs = await getWorkoutLogs();
       setLogs(firestoreLogs);
       setFormData(emptyLogForm);
+      setSelectedRoutine(null);
+      setExercisePerformance({});
       setFormError("");
     } catch (error) {
       console.error("Save workout log error:", error);
@@ -198,8 +238,8 @@ const WorkoutLogs = () => {
     if (!currentUser) return;
 
     try {
-      await deleteWorkoutLog(currentUser.uid, logId);
-      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+      await deleteWorkoutLog(logId);
+      getWorkoutLogs();
       setLogs(firestoreLogs);
     } catch (error) {
       console.error("Delete workout log error:", error);
@@ -228,8 +268,8 @@ const WorkoutLogs = () => {
             maxWidth: "760px",
           }}
         >
-          Track each workout session by entering exercise details, training
-          volume, equipment used, and workout duration.
+          Track each workout session by selecting a routine, reviewing the saved
+          exercises, and logging any weight used where equipment is required.
         </Typography>
       </Box>
 
@@ -255,14 +295,14 @@ const WorkoutLogs = () => {
 
         <Box sx={infoCardSx}>
           <Stack direction="row" spacing={1.2} alignItems="center" mb={1}>
-            <CalendarMonthRoundedIcon />
-            <Typography sx={{ fontWeight: 700 }}>Latest Category</Typography>
+            <AssignmentRoundedIcon />
+            <Typography sx={{ fontWeight: 700 }}>Latest Routine</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {logs[0]?.category || "-"}
+            {latestRoutineLabel}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
-            Most recently logged category
+            Most recently logged routine
           </Typography>
         </Box>
 
@@ -272,10 +312,10 @@ const WorkoutLogs = () => {
             <Typography sx={{ fontWeight: 700 }}>Latest Duration</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {logs[0] ? `${logs[0].minutes}m ${logs[0].seconds}s` : "-"}
+            {latestDurationLabel}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
-            Time from latest workout log
+            Duration from latest routine snapshot
           </Typography>
         </Box>
       </Stack>
@@ -296,7 +336,8 @@ const WorkoutLogs = () => {
         </Typography>
 
         <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>
-          Enter your workout session details below and submit your log.
+          Select the date and routine below. Saved exercises will appear
+          automatically.
         </Typography>
 
         <Stack spacing={2.2}>
@@ -310,133 +351,161 @@ const WorkoutLogs = () => {
             sx={inputSx}
           />
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
+          <TextField
+            select
+            label="Routine"
+            fullWidth
+            value={formData.routineId}
+            onChange={(e) => handleInputChange("routineId", e.target.value)}
+            sx={inputSx}
           >
-            <TextField
-              select
-              label="Exercise"
-              fullWidth
-              value={formData.exercise}
-              onChange={(e) => handleInputChange("exercise", e.target.value)}
-              sx={inputSx}
+            {routines.map((routine) => (
+              <MenuItem key={routine.id} value={routine.id}>
+                {routine.title}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {selectedRoutine && (
+            <Box
+              sx={{
+                borderRadius: "20px",
+                padding: "18px",
+                background: "rgba(255,255,255,0.42)",
+                border: "1px solid rgba(255,255,255,0.18)",
+              }}
             >
-              {exerciseOptions.map((exercise) => (
-                <MenuItem key={exercise} value={exercise}>
-                  {exercise}
-                </MenuItem>
-              ))}
-            </TextField>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1.5}
+                useFlexGap
+                flexWrap="wrap"
+                sx={{ mb: 2 }}
+              >
+                {!!selectedRoutine.level && (
+                  <Chip label={`Level: ${selectedRoutine.level}`} />
+                )}
+                {!!buildRoutineSnapshot(selectedRoutine).duration && (
+                  <Chip
+                    label={`Duration: ${buildRoutineSnapshot(selectedRoutine).duration}`}
+                  />
+                )}
+                {!!buildRoutineSnapshot(selectedRoutine).frequency && (
+                  <Chip
+                    label={`Frequency: ${buildRoutineSnapshot(selectedRoutine).frequency}`}
+                  />
+                )}
+                {!!selectedRoutine.focus && (
+                  <Chip label={`Focus: ${selectedRoutine.focus}`} />
+                )}
+              </Stack>
 
-            <TextField
-              select
-              label="Equipment"
-              fullWidth
-              value={formData.equipment}
-              onChange={(e) => handleInputChange("equipment", e.target.value)}
-              sx={inputSx}
-            >
-              {equipmentOptions.map((equipment) => (
-                <MenuItem key={equipment} value={equipment}>
-                  {equipment}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
+              <Typography sx={{ fontWeight: 800, mb: 2 }}>
+                Saved Exercises
+              </Typography>
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <TextField
-              select
-              label="Category"
-              fullWidth
-              value={formData.category}
-              onChange={(e) => handleInputChange("category", e.target.value)}
-              sx={inputSx}
-            >
-              {categoryOptions.map((category) => (
-                <MenuItem key={category} value={category}>
-                  {category}
-                </MenuItem>
-              ))}
-            </TextField>
+              <Stack spacing={2}>
+                {(selectedRoutine.exercises || []).map((exercise, index) => {
+                  const hasEquipment = Boolean(exercise?.equipment?.trim());
 
-            <TextField
-              label="Sets"
-              fullWidth
-              value={formData.sets}
-              onChange={(e) => handleInputChange("sets", e.target.value)}
-              sx={inputSx}
-            />
-          </Stack>
+                  return (
+                    <Box key={`${exercise.name}-${index}`} sx={exerciseCardSx}>
+                      <Stack spacing={1.5}>
+                        <Box>
+                          <Typography
+                            sx={{ fontSize: "1.05rem", fontWeight: 800 }}
+                          >
+                            {exercise.name || `Exercise ${index + 1}`}
+                          </Typography>
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <TextField
-              label="Reps"
-              fullWidth
-              value={formData.reps}
-              onChange={(e) => handleInputChange("reps", e.target.value)}
-              sx={inputSx}
-            />
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1}
+                            useFlexGap
+                            flexWrap="wrap"
+                            sx={{ mt: 1 }}
+                          >
+                            {!!exercise.sets && (
+                              <Chip label={`Sets: ${exercise.sets}`} />
+                            )}
+                            {!!exercise.reps && (
+                              <Chip label={`Reps: ${exercise.reps}`} />
+                            )}
+                            {!!exercise.timeValue && !!exercise.timeUnit && (
+                              <Chip
+                                label={`Time: ${exercise.timeValue} ${exercise.timeUnit}`}
+                              />
+                            )}
+                            {!!exercise.equipment && (
+                              <Chip label={`Equipment: ${exercise.equipment}`} />
+                            )}
+                          </Stack>
+                        </Box>
 
-            <TextField
-              label="Weight"
-              fullWidth
-              value={formData.weight}
-              onChange={(e) => handleInputChange("weight", e.target.value)}
-              sx={inputSx}
-            />
+                        {hasEquipment && (
+                          <>
+                            <Divider />
+                            <Stack
+                              direction={{ xs: "column", md: "row" }}
+                              spacing={2}
+                              useFlexGap
+                              flexWrap="wrap"
+                            >
+                              <TextField
+                                select
+                                label="Weight"
+                                fullWidth
+                                value={exercisePerformance[index]?.weight || ""}
+                                onChange={(e) =>
+                                  handleExercisePerformanceChange(
+                                    index,
+                                    "weight",
+                                    e.target.value
+                                  )
+                                }
+                                sx={inputSx}
+                              >
+                                {Array.from({ length: 401 }, (_, i) => i).map(
+                                  (value) => (
+                                    <MenuItem key={value} value={value}>
+                                      {value}
+                                    </MenuItem>
+                                  )
+                                )}
+                              </TextField>
 
-            <TextField
-              select
-              label="Weight Unit"
-              fullWidth
-              value={formData.weightUnit}
-              onChange={(e) => handleInputChange("weightUnit", e.target.value)}
-              sx={inputSx}
-            >
-              {weightUnitOptions.map((unit) => (
-                <MenuItem key={unit} value={unit}>
-                  {unit}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <TextField
-              label="Minutes"
-              fullWidth
-              value={formData.minutes}
-              onChange={(e) => handleInputChange("minutes", e.target.value)}
-              sx={inputSx}
-            />
-
-            <TextField
-              label="Seconds"
-              fullWidth
-              value={formData.seconds}
-              onChange={(e) => handleInputChange("seconds", e.target.value)}
-              sx={inputSx}
-            />
-          </Stack>
+                              <TextField
+                                select
+                                label="Weight Unit"
+                                fullWidth
+                                value={
+                                  exercisePerformance[index]?.weightUnit || "kg"
+                                }
+                                onChange={(e) =>
+                                  handleExercisePerformanceChange(
+                                    index,
+                                    "weightUnit",
+                                    e.target.value
+                                  )
+                                }
+                                sx={inputSx}
+                              >
+                                {weightUnitOptions.map((unit) => (
+                                  <MenuItem key={unit} value={unit}>
+                                    {unit}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </Stack>
+                          </>
+                        )}
+                      </Stack>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
 
           {formError && (
             <Typography sx={{ color: "#b42318", fontWeight: 600 }}>
@@ -508,17 +577,19 @@ const WorkoutLogs = () => {
                         color: "#111",
                       }}
                     >
-                      {log.exercise?.name || log.exercise}
+                      {log.routineTitle || log.routineSnapshot?.title || "Routine"}
                     </Typography>
 
-                    <Chip
-                      label={log.category}
-                      sx={{
-                        fontWeight: 700,
-                        background: "rgba(17,17,17,0.08)",
-                        color: "#111",
-                      }}
-                    />
+                    {!!log.routineSnapshot?.focus && (
+                      <Chip
+                        label={log.routineSnapshot.focus}
+                        sx={{
+                          fontWeight: 700,
+                          background: "rgba(17,17,17,0.08)",
+                          color: "#111",
+                        }}
+                      />
+                    )}
                   </Stack>
 
                   <Typography
@@ -538,11 +609,65 @@ const WorkoutLogs = () => {
                     flexWrap="wrap"
                     sx={{ mb: 2 }}
                   >
-                    <Chip label={`Equipment: ${log.equipment}`} />
-                    <Chip label={`Sets: ${log.sets}`} />
-                    <Chip label={`Reps: ${log.reps}`} />
-                    <Chip label={`Weight: ${log.weight} ${log.weightUnit}`} />
-                    <Chip label={`Time: ${log.minutes}m ${log.seconds}s`} />
+                    {!!log.routineSnapshot?.level && (
+                      <Chip label={`Level: ${log.routineSnapshot.level}`} />
+                    )}
+                    {!!log.routineSnapshot?.duration && (
+                      <Chip label={`Duration: ${log.routineSnapshot.duration}`} />
+                    )}
+                    {!!log.routineSnapshot?.frequency && (
+                      <Chip label={`Frequency: ${log.routineSnapshot.frequency}`} />
+                    )}
+                    <Chip
+                      label={`Exercises: ${
+                        log.routineSnapshot?.exercises?.length || 0
+                      }`}
+                    />
+                  </Stack>
+
+                  <Stack spacing={1.25}>
+                    {(log.exercisePerformance || []).map((exercise, index) => (
+                      <Box
+                        key={`${exercise.exerciseName}-${index}`}
+                        sx={{
+                          borderRadius: "16px",
+                          padding: "14px",
+                          background: "rgba(255,255,255,0.38)",
+                          border: "1px solid rgba(255,255,255,0.16)",
+                        }}
+                      >
+                        <Typography sx={{ fontWeight: 800, mb: 1 }}>
+                          {exercise.exerciseName || `Exercise ${index + 1}`}
+                        </Typography>
+
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={1}
+                          useFlexGap
+                          flexWrap="wrap"
+                        >
+                          {!!exercise.equipment && (
+                            <Chip label={`Equipment: ${exercise.equipment}`} />
+                          )}
+                          {!!exercise.sets && (
+                            <Chip label={`Sets: ${exercise.sets}`} />
+                          )}
+                          {!!exercise.reps && (
+                            <Chip label={`Reps: ${exercise.reps}`} />
+                          )}
+                          {!!exercise.timeValue && !!exercise.timeUnit && (
+                            <Chip
+                              label={`Time: ${exercise.timeValue} ${exercise.timeUnit}`}
+                            />
+                          )}
+                          {!!exercise.weight && !!exercise.weightUnit && (
+                            <Chip
+                              label={`Weight: ${exercise.weight} ${exercise.weightUnit}`}
+                            />
+                          )}
+                        </Stack>
+                      </Box>
+                    ))}
                   </Stack>
                 </Box>
 
