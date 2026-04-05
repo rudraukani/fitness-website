@@ -29,22 +29,18 @@ const App = () => {
         <Routes>
           <Route path="/account" element={<Account />} />
 
-          <Route path="/" 
-          element={<ProtectedRoute><Home /></ProtectedRoute>}
-          />
+          <Route path="/" element={<Home />}/>
 
-          <Route path="/exercise/:id" element={
-              <ProtectedRoute><ExerciseDetail /></ProtectedRoute>}
-          />
-
-          <Route
-            path="/explore"
-            element={<ProtectedRoute> <Explore /></ProtectedRoute>}
+          <Route path="/exercise/:id" 
+            element={<ExerciseDetail />}
           />
 
           <Route
-            path="/favorites" 
-            element={<ProtectedRoute><Favorites /></ProtectedRoute>}
+            path="/explore" element={<Explore />}
+          />
+
+          <Route
+            path="/favorites" element={<Favorites />} 
           />
 
           <Route
