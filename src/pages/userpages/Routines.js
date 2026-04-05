@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -23,19 +24,30 @@ import {
   getRoutines,
 } from "../../utils/routines";
 
+const levelOptions = ["beginner", "intermediate", "expert"];
+const durationUnitOptions = ["days", "weeks", "months"];
+const focusOptions = ["strength", "muscle gain", "fat loss"];
+const routineCountOptions = Array.from({ length: 60 }, (_, index) => String(index + 1));
+const exerciseCountOptions = Array.from({ length: 50 }, (_, index) => String(index + 1));
+const timeUnitOptions = ["seconds", "minutes"];
+
 const emptyRoutineForm = {
   title: "",
   level: "",
-  duration: "",
-  frequency: "",
+  durationValue: "",
+  durationUnit: "",
+  frequencyValue: "",
+  frequencyUnit: "",
   focus: "",
-  description: "",
+  notes: "",
 };
 
 const emptyExerciseForm = {
   name: "",
   sets: "",
   reps: "",
+  timeValue: "",
+  timeUnit: "",
   equipment: "",
 };
 
@@ -67,6 +79,104 @@ const inputSx = {
 
 const makeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+const capitalizeWords = (value = "") =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const formatCountWithUnit = (value, unit, fallback = "") => {
+  if (value && unit) {
+    return `${value} ${unit}`;
+  }
+
+  return fallback;
+};
+
+const formatExerciseDetail = (exercise) => {
+  const hasSetsAndReps = exercise.sets && exercise.reps;
+  const hasTime = exercise.timeValue && exercise.timeUnit;
+
+  if (hasSetsAndReps) {
+    return `${exercise.sets} sets × ${exercise.reps} reps`;
+  }
+
+  if (hasTime) {
+    return `${exercise.timeValue} ${exercise.timeUnit}`;
+  }
+
+  return "Exercise details not set";
+};
+
+const normalizeRoutine = (routine) => ({
+  ...routine,
+  level: routine.level || "",
+  durationValue: routine.durationValue || "",
+  durationUnit: routine.durationUnit || "",
+  frequencyValue: routine.frequencyValue || "",
+  frequencyUnit: routine.frequencyUnit || "",
+  focus: routine.focus || "",
+  notes: routine.notes || routine.description || "",
+  exercises: (routine.exercises || []).map((exercise) => ({
+    ...exercise,
+    sets: exercise.sets || "",
+    reps: exercise.reps || "",
+    timeValue: exercise.timeValue || "",
+    timeUnit: exercise.timeUnit || "",
+    equipment: exercise.equipment || "",
+  })),
+});
+
+const buildTrimmedRoutine = (routine) => ({
+  title: routine.title.trim(),
+  level: routine.level.trim(),
+  durationValue: routine.durationValue.trim(),
+  durationUnit: routine.durationUnit.trim(),
+  frequencyValue: routine.frequencyValue.trim(),
+  frequencyUnit: routine.frequencyUnit.trim(),
+  focus: routine.focus.trim(),
+  notes: routine.notes.trim(),
+});
+
+const buildTrimmedExercise = (exercise) => ({
+  name: exercise.name.trim(),
+  sets: exercise.sets.trim(),
+  reps: exercise.reps.trim(),
+  timeValue: exercise.timeValue.trim(),
+  timeUnit: exercise.timeUnit.trim(),
+  equipment: exercise.equipment.trim(),
+});
+
+const validateExercise = (exercise) => {
+  if (!exercise.name) {
+    return "Please fill in the exercise name before adding the exercise.";
+  }
+
+  const hasSetsAndReps = Boolean(exercise.sets && exercise.reps);
+  const hasPartialSetsAndReps = Boolean(exercise.sets || exercise.reps);
+  const hasTime = Boolean(exercise.timeValue && exercise.timeUnit);
+  const hasPartialTime = Boolean(exercise.timeValue || exercise.timeUnit);
+
+  if (hasSetsAndReps && hasTime) {
+    return "Please fill in either Sets & Reps or Time for the exercise, not both.";
+  }
+
+  if (!hasSetsAndReps && !hasTime) {
+    return "Please fill in either Sets & Reps or Time for the exercise.";
+  }
+
+  if (hasPartialSetsAndReps && !hasSetsAndReps) {
+    return "Please complete both Sets and Reps for the exercise.";
+  }
+
+  if (hasPartialTime && !hasTime) {
+    return "Please complete both Time fields for the exercise.";
+  }
+
+  return "";
+};
+
 const Routines = () => {
   const { currentUser } = useAuth();
   const [routines, setRoutines] = useState([]);
@@ -78,6 +188,7 @@ const Routines = () => {
   const [formError, setFormError] = useState("");
   const [viewingRoutineId, setViewingRoutineId] = useState(null);
 
+  const [showAddExercises, setShowAddExercises] = useState(false);
   const [addExerciseForms, setAddExerciseForms] = useState({});
   const [editExerciseState, setEditExerciseState] = useState({
     routineId: null,
@@ -85,6 +196,8 @@ const Routines = () => {
     name: "",
     sets: "",
     reps: "",
+    timeValue: "",
+    timeUnit: "",
     equipment: "",
   });
 
@@ -97,9 +210,10 @@ const Routines = () => {
 
     try {
       const firestoreRoutines = await getRoutines(currentUser.uid);
-      setRoutines(firestoreRoutines);
+      const normalizedRoutines = firestoreRoutines.map(normalizeRoutine);
+      setRoutines(normalizedRoutines);
       setSavedRoutineIds(
-        firestoreRoutines.filter((routine) => routine.saved).map((routine) => routine.id)
+        normalizedRoutines.filter((routine) => routine.saved).map((routine) => routine.id)
       );
     } catch (error) {
       console.error("Load routines error:", error);
@@ -111,22 +225,6 @@ const Routines = () => {
   useEffect(() => {
     loadRoutinesFromFirestore();
   }, [currentUser]);
-
-  const handleToggleSave = async (routineId) => {
-    if (!currentUser) return;
-
-    const routine = routines.find((item) => item.id === routineId);
-    if (!routine) return;
-
-    try {
-      await updateRoutine(currentUser.uid, routineId, {
-        saved: !routine.saved,
-      });
-      await loadRoutinesFromFirestore();
-    } catch (error) {
-      console.error("Toggle save routine error:", error);
-    }
-  };
 
   const handleRoutineInputChange = (field, value) => {
     setNewRoutine((prev) => ({
@@ -143,15 +241,11 @@ const Routines = () => {
   };
 
   const handleAddExercise = () => {
-    const trimmedExercise = {
-      name: exerciseForm.name.trim(),
-      sets: exerciseForm.sets.trim(),
-      reps: exerciseForm.reps.trim(),
-      equipment: exerciseForm.equipment.trim(),
-    };
+    const trimmedExercise = buildTrimmedExercise(exerciseForm);
+    const exerciseError = validateExercise(trimmedExercise);
 
-    if (!trimmedExercise.name || !trimmedExercise.sets || !trimmedExercise.reps) {
-      setFormError("Please fill in exercise name, sets, and reps before adding the exercise.");
+    if (exerciseError) {
+      setFormError(exerciseError);
       return;
     }
 
@@ -172,19 +266,26 @@ const Routines = () => {
   };
 
   const handleCreateRoutine = async () => {
-    const trimmedRoutine = {
-      title: newRoutine.title.trim(),
-      level: newRoutine.level.trim(),
-      duration: newRoutine.duration.trim(),
-      frequency: newRoutine.frequency.trim(),
-      focus: newRoutine.focus.trim(),
-      description: newRoutine.description.trim(),
-    };
+    const trimmedRoutine = buildTrimmedRoutine(newRoutine);
 
-    const hasEmptyRoutineField = Object.values(trimmedRoutine).some((value) => !value);
+    if (!trimmedRoutine.title) {
+      setFormError("Please fill in the routine name before creating the routine.");
+      return;
+    }
 
-    if (hasEmptyRoutineField) {
-      setFormError("Please fill in all routine details before creating the routine.");
+    if (
+      (trimmedRoutine.durationValue && !trimmedRoutine.durationUnit) ||
+      (!trimmedRoutine.durationValue && trimmedRoutine.durationUnit)
+    ) {
+      setFormError("Please complete both Duration fields or leave them blank.");
+      return;
+    }
+
+    if (
+      (trimmedRoutine.frequencyValue && !trimmedRoutine.frequencyUnit) ||
+      (!trimmedRoutine.frequencyValue && trimmedRoutine.frequencyUnit)
+    ) {
+      setFormError("Please complete both Frequency fields or leave them blank.");
       return;
     }
 
@@ -237,6 +338,8 @@ const Routines = () => {
           name: "",
           sets: "",
           reps: "",
+          timeValue: "",
+          timeUnit: "",
           equipment: "",
         });
       }
@@ -244,8 +347,7 @@ const Routines = () => {
       console.error("Delete routine error:", error);
     }
   };
-
-  const handleViewPlan = (routineId) => {
+    const handleViewPlan = (routineId) => {
     setViewingRoutineId((prev) => (prev === routineId ? null : routineId));
     setEditExerciseState({
       routineId: null,
@@ -253,8 +355,11 @@ const Routines = () => {
       name: "",
       sets: "",
       reps: "",
+      timeValue: "",
+      timeUnit: "",
       equipment: "",
     });
+    setFormError("");
   };
 
   const handleDeleteExerciseFromRoutine = async (routineId, exerciseId) => {
@@ -284,6 +389,8 @@ const Routines = () => {
           name: "",
           sets: "",
           reps: "",
+          timeValue: "",
+          timeUnit: "",
           equipment: "",
         });
       }
@@ -297,10 +404,13 @@ const Routines = () => {
       routineId,
       exerciseId: exercise.id,
       name: exercise.name,
-      sets: exercise.sets,
-      reps: exercise.reps,
+      sets: exercise.sets || "",
+      reps: exercise.reps || "",
+      timeValue: exercise.timeValue || "",
+      timeUnit: exercise.timeUnit || "",
       equipment: exercise.equipment || "",
     });
+    setFormError("");
   };
 
   const cancelEditExercise = () => {
@@ -310,8 +420,11 @@ const Routines = () => {
       name: "",
       sets: "",
       reps: "",
+      timeValue: "",
+      timeUnit: "",
       equipment: "",
     });
+    setFormError("");
   };
 
   const handleEditExerciseInputChange = (field, value) => {
@@ -324,14 +437,11 @@ const Routines = () => {
   const saveEditedExercise = async () => {
     if (!currentUser) return;
 
-    const trimmedExercise = {
-      name: editExerciseState.name.trim(),
-      sets: editExerciseState.sets.trim(),
-      reps: editExerciseState.reps.trim(),
-      equipment: editExerciseState.equipment.trim(),
-    };
+    const trimmedExercise = buildTrimmedExercise(editExerciseState);
+    const exerciseError = validateExercise(trimmedExercise);
 
-    if (!trimmedExercise.name || !trimmedExercise.sets || !trimmedExercise.reps) {
+    if (exerciseError) {
+      setFormError(exerciseError);
       return;
     }
 
@@ -370,15 +480,11 @@ const Routines = () => {
     if (!currentUser) return;
 
     const currentForm = addExerciseForms[routineId] || emptyExerciseForm;
+    const trimmedExercise = buildTrimmedExercise(currentForm);
+    const exerciseError = validateExercise(trimmedExercise);
 
-    const trimmedExercise = {
-      name: currentForm.name.trim(),
-      sets: currentForm.sets.trim(),
-      reps: currentForm.reps.trim(),
-      equipment: currentForm.equipment.trim(),
-    };
-
-    if (!trimmedExercise.name || !trimmedExercise.sets || !trimmedExercise.reps) {
+    if (exerciseError) {
+      setFormError(exerciseError);
       return;
     }
 
@@ -396,6 +502,7 @@ const Routines = () => {
       });
 
       await loadRoutinesFromFirestore();
+      setFormError("");
 
       setAddExerciseForms((prev) => ({
         ...prev,
@@ -436,7 +543,7 @@ const Routines = () => {
             }}
           >
             Create your own workout routines manually, add exercises with sets,
-            reps, and equipment, then manage them in one clean list.
+            reps, time, and equipment, then manage them in one clean list.
           </Typography>
         </Box>
 
@@ -524,7 +631,7 @@ const Routines = () => {
               flexWrap="wrap"
             >
               <TextField
-                label="Routine Name"
+                label="Name"
                 fullWidth
                 value={newRoutine.title}
                 onChange={(e) => handleRoutineInputChange("title", e.target.value)}
@@ -534,54 +641,129 @@ const Routines = () => {
               <TextField
                 label="Level"
                 fullWidth
+                select
                 value={newRoutine.level}
                 onChange={(e) => handleRoutineInputChange("level", e.target.value)}
-                placeholder="Beginner / Intermediate / Advanced"
                 sx={inputSx}
-              />
+              >
+                <MenuItem value="">None</MenuItem>
+                {levelOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {capitalizeWords(option)}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Stack>
-
+            
+            <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>Duration:</Typography>
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={2}
               useFlexGap
               flexWrap="wrap"
             >
-              <TextField
-                label="Duration"
-                fullWidth
-                value={newRoutine.duration}
-                onChange={(e) => handleRoutineInputChange("duration", e.target.value)}
-                placeholder="6 Weeks"
-                sx={inputSx}
-              />
+              <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                <TextField
+                  label="#"
+                  fullWidth
+                  select
+                  value={newRoutine.durationValue}
+                  onChange={(e) => handleRoutineInputChange("durationValue", e.target.value)}
+                  sx={inputSx}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {routineCountOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
-              <TextField
-                label="Frequency"
-                fullWidth
-                value={newRoutine.frequency}
-                onChange={(e) => handleRoutineInputChange("frequency", e.target.value)}
-                placeholder="4 Days / Week"
-                sx={inputSx}
-              />
+                <TextField
+                  label="Unit"
+                  fullWidth
+                  select
+                  value={newRoutine.durationUnit}
+                  onChange={(e) => handleRoutineInputChange("durationUnit", e.target.value)}
+                  sx={inputSx}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {durationUnitOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {capitalizeWords(option)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+
+              
+            </Stack>
+            
+            <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>Frequency:</Typography>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              useFlexGap
+              flexWrap="wrap"
+            >
+              <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                <TextField
+                  label="#"
+                  fullWidth
+                  select
+                  value={newRoutine.frequencyValue}
+                  onChange={(e) => handleRoutineInputChange("frequencyValue", e.target.value)}
+                  sx={inputSx}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {routineCountOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  label="Unit"
+                  fullWidth
+                  select
+                  value={newRoutine.frequencyUnit}
+                  onChange={(e) => handleRoutineInputChange("frequencyUnit", e.target.value)}
+                  sx={inputSx}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {durationUnitOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {capitalizeWords(option)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
             </Stack>
 
             <TextField
               label="Focus"
               fullWidth
+              select
               value={newRoutine.focus}
               onChange={(e) => handleRoutineInputChange("focus", e.target.value)}
-              placeholder="Strength / Muscle Gain / Fat Loss"
               sx={inputSx}
-            />
+            >
+              <MenuItem value="">None</MenuItem>
+              {focusOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {capitalizeWords(option)}
+                </MenuItem>
+              ))}
+            </TextField>
 
             <TextField
-              label="Routine Description"
+              label="Notes"
               fullWidth
               multiline
               minRows={3}
-              value={newRoutine.description}
-              onChange={(e) => handleRoutineInputChange("description", e.target.value)}
+              value={newRoutine.notes}
+              onChange={(e) => handleRoutineInputChange("notes", e.target.value)}
               sx={inputSx}
             />
 
@@ -600,7 +782,7 @@ const Routines = () => {
 
               <Stack spacing={2}>
                 <TextField
-                  label="Exercise Name"
+                  label="Name"
                   fullWidth
                   value={exerciseForm.name}
                   onChange={(e) => handleExerciseInputChange("name", e.target.value)}
@@ -608,41 +790,98 @@ const Routines = () => {
                   sx={inputSx}
                 />
 
+                <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>By Sets & Reps:</Typography>
                 <Stack
                   direction={{ xs: "column", md: "row" }}
                   spacing={2}
                   useFlexGap
                   flexWrap="wrap"
                 >
-                  <TextField
-                    label="Sets"
-                    fullWidth
-                    value={exerciseForm.sets}
-                    onChange={(e) => handleExerciseInputChange("sets", e.target.value)}
-                    placeholder="3"
-                    sx={inputSx}
-                  />
+                  <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                    <TextField
+                      label="Sets"
+                      fullWidth
+                      select
+                      value={exerciseForm.sets}
+                      onChange={(e) => handleExerciseInputChange("sets", e.target.value)}
+                      sx={inputSx}
+                    >
+                      <MenuItem value="">None</MenuItem>
+                      {exerciseCountOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
 
-                  <TextField
-                    label="Reps"
-                    fullWidth
-                    value={exerciseForm.reps}
-                    onChange={(e) => handleExerciseInputChange("reps", e.target.value)}
-                    placeholder="10"
-                    sx={inputSx}
-                  />
-
-                  <TextField
-                    label="Equipment (Optional)"
-                    fullWidth
-                    value={exerciseForm.equipment}
-                    onChange={(e) =>
-                      handleExerciseInputChange("equipment", e.target.value)
-                    }
-                    placeholder="Dumbbells / Barbell / None"
-                    sx={inputSx}
-                  />
+                    <TextField
+                      label="Reps"
+                      fullWidth
+                      select
+                      value={exerciseForm.reps}
+                      onChange={(e) => handleExerciseInputChange("reps", e.target.value)}
+                      sx={inputSx}
+                    >
+                      <MenuItem value="">None</MenuItem>
+                      {exerciseCountOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Stack>
                 </Stack>
+                
+                <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>By Time:</Typography>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={2}
+                  useFlexGap
+                  flexWrap="wrap"
+                >
+                  <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                    <TextField
+                      label="Time"
+                      fullWidth
+                      select
+                      value={exerciseForm.timeValue}
+                      onChange={(e) => handleExerciseInputChange("timeValue", e.target.value)}
+                      sx={inputSx}
+                    >
+                      <MenuItem value="">None</MenuItem>
+                      {exerciseCountOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+
+                    <TextField
+                      label="Unit"
+                      fullWidth
+                      select
+                      value={exerciseForm.timeUnit}
+                      onChange={(e) => handleExerciseInputChange("timeUnit", e.target.value)}
+                      sx={inputSx}
+                    >
+                      <MenuItem value="">None</MenuItem>
+                      {timeUnitOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {capitalizeWords(option)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Stack>
+                </Stack>
+
+                <TextField
+                  label="Equipment"
+                  fullWidth
+                  value={exerciseForm.equipment}
+                  onChange={(e) => handleExerciseInputChange("equipment", e.target.value)}
+                  placeholder="Dumbbells / Barbell / None"
+                  sx={inputSx}
+                />
               </Stack>
 
               <Button
@@ -688,7 +927,7 @@ const Routines = () => {
                       >
                         <Box>
                           <Typography sx={{ fontWeight: 600, color: "#111" }}>
-                            {exercise.name}: {exercise.sets} sets of {exercise.reps} reps
+                            {exercise.name}: {formatExerciseDetail(exercise)}
                           </Typography>
                           <Typography sx={{ color: "rgba(0,0,0,0.65)", mt: 0.4 }}>
                             Equipment: {exercise.equipment || "None"}
@@ -786,7 +1025,7 @@ const Routines = () => {
 
           <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>
             Start by creating your first custom workout routine and add your own
-            exercises, sets, reps, and equipment.
+            exercises, sets, reps, time, and equipment.
           </Typography>
 
           <Button
@@ -816,6 +1055,16 @@ const Routines = () => {
             const isSaved = savedRoutineIds.includes(routine.id);
             const isViewing = viewingRoutineId === routine.id;
             const addForm = addExerciseForms[routine.id] || emptyExerciseForm;
+            const durationLabel = formatCountWithUnit(
+              routine.durationValue,
+              routine.durationUnit,
+              routine.duration
+            );
+            const frequencyLabel = formatCountWithUnit(
+              routine.frequencyValue,
+              routine.frequencyUnit,
+              routine.frequency
+            );
 
             return (
               <Box key={routine.id} sx={routineCardSx}>
@@ -842,14 +1091,16 @@ const Routines = () => {
                           {routine.title}
                         </Typography>
 
-                        <Chip
-                          label={routine.level}
-                          sx={{
-                            fontWeight: 700,
-                            background: "rgba(17,17,17,0.08)",
-                            color: "#111",
-                          }}
-                        />
+                        {routine.level && (
+                          <Chip
+                            label={capitalizeWords(routine.level)}
+                            sx={{
+                              fontWeight: 700,
+                              background: "rgba(17,17,17,0.08)",
+                              color: "#111",
+                            }}
+                          />
+                        )}
 
                         {isSaved && (
                           <Chip
@@ -863,17 +1114,19 @@ const Routines = () => {
                         )}
                       </Stack>
 
-                      <Typography
-                        sx={{
-                          color: "rgba(0,0,0,0.72)",
-                          fontSize: "1rem",
-                          lineHeight: 1.7,
-                          mb: 2,
-                          maxWidth: "800px",
-                        }}
-                      >
-                        {routine.description}
-                      </Typography>
+                      {routine.notes && (
+                        <Typography
+                          sx={{
+                            color: "rgba(0,0,0,0.72)",
+                            fontSize: "1rem",
+                            lineHeight: 1.7,
+                            mb: 2,
+                            maxWidth: "800px",
+                          }}
+                        >
+                          {routine.notes}
+                        </Typography>
+                      )}
 
                       <Stack
                         direction={{ xs: "column", sm: "row" }}
@@ -882,21 +1135,27 @@ const Routines = () => {
                         flexWrap="wrap"
                         sx={{ mb: 2 }}
                       >
-                        <Chip
-                          icon={<AccessTimeRoundedIcon />}
-                          label={routine.duration}
-                          sx={{ background: "rgba(255,255,255,0.7)" }}
-                        />
-                        <Chip
-                          icon={<CalendarMonthRoundedIcon />}
-                          label={routine.frequency}
-                          sx={{ background: "rgba(255,255,255,0.7)" }}
-                        />
-                        <Chip
-                          icon={<BoltRoundedIcon />}
-                          label={routine.focus}
-                          sx={{ background: "rgba(255,255,255,0.7)" }}
-                        />
+                        {durationLabel && (
+                          <Chip
+                            icon={<AccessTimeRoundedIcon />}
+                            label={durationLabel}
+                            sx={{ background: "rgba(255,255,255,0.7)" }}
+                          />
+                        )}
+                        {frequencyLabel && (
+                          <Chip
+                            icon={<CalendarMonthRoundedIcon />}
+                            label={frequencyLabel}
+                            sx={{ background: "rgba(255,255,255,0.7)" }}
+                          />
+                        )}
+                        {routine.focus && (
+                          <Chip
+                            icon={<BoltRoundedIcon />}
+                            label={capitalizeWords(routine.focus)}
+                            sx={{ background: "rgba(255,255,255,0.7)" }}
+                          />
+                        )}
                       </Stack>
 
                       <Typography sx={{ fontWeight: 700 }}>
@@ -928,27 +1187,6 @@ const Routines = () => {
                         }}
                       >
                         {isViewing ? "Hide Plan" : "View Plan"}
-                      </Button>
-
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleToggleSave(routine.id)}
-                        sx={{
-                          borderColor: isSaved ? "#3066BE" : "#111",
-                          color: isSaved ? "#3066BE" : "#111",
-                          fontWeight: 700,
-                          borderRadius: "14px",
-                          px: 2.5,
-                          py: 1.2,
-                          "&:hover": {
-                            borderColor: isSaved ? "#3066BE" : "#111",
-                            background: isSaved
-                              ? "rgba(48,102,190,0.08)"
-                              : "rgba(17,17,17,0.05)",
-                          },
-                        }}
-                      >
-                        {isSaved ? "Saved" : "Save Routine"}
                       </Button>
 
                       <Button
@@ -986,15 +1224,6 @@ const Routines = () => {
                         alignItems={{ xs: "flex-start", sm: "center" }}
                         sx={{ mb: 2 }}
                       >
-                        <Typography
-                          sx={{
-                            fontSize: "1.2rem",
-                            fontWeight: 800,
-                            color: "#111",
-                          }}
-                        >
-                          {routine.title} Plan Details
-                        </Typography>
 
                         <Button
                           variant="text"
@@ -1028,7 +1257,7 @@ const Routines = () => {
                                 {isEditing ? (
                                   <Stack spacing={2}>
                                     <TextField
-                                      label="Exercise Name"
+                                      label="Name"
                                       fullWidth
                                       value={editExerciseState.name}
                                       onChange={(e) =>
@@ -1043,39 +1272,101 @@ const Routines = () => {
                                       useFlexGap
                                       flexWrap="wrap"
                                     >
-                                      <TextField
-                                        label="Sets"
-                                        fullWidth
-                                        value={editExerciseState.sets}
-                                        onChange={(e) =>
-                                          handleEditExerciseInputChange("sets", e.target.value)
-                                        }
-                                        sx={inputSx}
-                                      />
+                                      <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                                        <TextField
+                                          label="Sets"
+                                          fullWidth
+                                          select
+                                          value={editExerciseState.sets}
+                                          onChange={(e) =>
+                                            handleEditExerciseInputChange("sets", e.target.value)
+                                          }
+                                          sx={inputSx}
+                                        >
+                                          <MenuItem value="">None</MenuItem>
+                                          {exerciseCountOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>
+                                              {option}
+                                            </MenuItem>
+                                          ))}
+                                        </TextField>
 
-                                      <TextField
-                                        label="Reps"
-                                        fullWidth
-                                        value={editExerciseState.reps}
-                                        onChange={(e) =>
-                                          handleEditExerciseInputChange("reps", e.target.value)
-                                        }
-                                        sx={inputSx}
-                                      />
+                                        <TextField
+                                          label="Reps"
+                                          fullWidth
+                                          select
+                                          value={editExerciseState.reps}
+                                          onChange={(e) =>
+                                            handleEditExerciseInputChange("reps", e.target.value)
+                                          }
+                                          sx={inputSx}
+                                        >
+                                          <MenuItem value="">None</MenuItem>
+                                          {exerciseCountOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>
+                                              {option}
+                                            </MenuItem>
+                                          ))}
+                                        </TextField>
+                                      </Stack>
 
-                                      <TextField
-                                        label="Equipment"
-                                        fullWidth
-                                        value={editExerciseState.equipment}
-                                        onChange={(e) =>
-                                          handleEditExerciseInputChange(
-                                            "equipment",
-                                            e.target.value
-                                          )
-                                        }
-                                        sx={inputSx}
-                                      />
+                                      <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                                        <TextField
+                                          label="Time"
+                                          fullWidth
+                                          select
+                                          value={editExerciseState.timeValue}
+                                          onChange={(e) =>
+                                            handleEditExerciseInputChange(
+                                              "timeValue",
+                                              e.target.value
+                                            )
+                                          }
+                                          sx={inputSx}
+                                        >
+                                          <MenuItem value="">None</MenuItem>
+                                          {exerciseCountOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>
+                                              {option}
+                                            </MenuItem>
+                                          ))}
+                                        </TextField>
+
+                                        <TextField
+                                          label="Unit"
+                                          fullWidth
+                                          select
+                                          value={editExerciseState.timeUnit}
+                                          onChange={(e) =>
+                                            handleEditExerciseInputChange(
+                                              "timeUnit",
+                                              e.target.value
+                                            )
+                                          }
+                                          sx={inputSx}
+                                        >
+                                          <MenuItem value="">None</MenuItem>
+                                          {timeUnitOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>
+                                              {capitalizeWords(option)}
+                                            </MenuItem>
+                                          ))}
+                                        </TextField>
+                                      </Stack>
                                     </Stack>
+
+                                    <TextField
+                                      label="Equipment"
+                                      fullWidth
+                                      value={editExerciseState.equipment}
+                                      onChange={(e) =>
+                                        handleEditExerciseInputChange(
+                                          "equipment",
+                                          e.target.value
+                                        )
+                                      }
+                                      sx={inputSx}
+                                    />
 
                                     <Stack direction="row" spacing={1.5}>
                                       <Button
@@ -1119,7 +1410,7 @@ const Routines = () => {
                                   >
                                     <Box>
                                       <Typography sx={{ fontWeight: 700, color: "#111" }}>
-                                        {exercise.name}: {exercise.sets} sets of {exercise.reps} reps
+                                        {exercise.name}: {formatExerciseDetail(exercise)}
                                       </Typography>
                                       <Typography
                                         sx={{ color: "rgba(0,0,0,0.7)", mt: 0.5 }}
@@ -1184,20 +1475,26 @@ const Routines = () => {
                           border: "1px solid rgba(255,255,255,0.24)",
                         }}
                       >
-                        <Typography
+
+                        <Button
+                          onClick={() => setShowAddExercises(!showAddExercises)}
                           sx={{
                             fontSize: "1.05rem",
                             fontWeight: 800,
                             color: "#111",
                             mb: 2,
+                            textTransform: "none",
+                            justifyContent: "flex-start",
+                            p: 0,
                           }}
                         >
-                          Add More Exercises
-                        </Typography>
+                          {showAddExercises ? "Hide Exercises" : "Add More Exercises"}
+                        </Button>
 
+                        {showAddExercises && (
                         <Stack spacing={2}>
                           <TextField
-                            label="Exercise Name"
+                            label="Name"
                             fullWidth
                             value={addForm.name}
                             onChange={(e) =>
@@ -1216,48 +1513,112 @@ const Routines = () => {
                             useFlexGap
                             flexWrap="wrap"
                           >
-                            <TextField
-                              label="Sets"
-                              fullWidth
-                              value={addForm.sets}
-                              onChange={(e) =>
-                                handleAddExerciseToExistingRoutineInput(
-                                  routine.id,
-                                  "sets",
-                                  e.target.value
-                                )
-                              }
-                              sx={inputSx}
-                            />
+                            <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                              <TextField
+                                label="Sets"
+                                fullWidth
+                                select
+                                value={addForm.sets}
+                                onChange={(e) =>
+                                  handleAddExerciseToExistingRoutineInput(
+                                    routine.id,
+                                    "sets",
+                                    e.target.value
+                                  )
+                                }
+                                sx={inputSx}
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {exerciseCountOptions.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
 
-                            <TextField
-                              label="Reps"
-                              fullWidth
-                              value={addForm.reps}
-                              onChange={(e) =>
-                                handleAddExerciseToExistingRoutineInput(
-                                  routine.id,
-                                  "reps",
-                                  e.target.value
-                                )
-                              }
-                              sx={inputSx}
-                            />
+                              <TextField
+                                label="Reps"
+                                fullWidth
+                                select
+                                value={addForm.reps}
+                                onChange={(e) =>
+                                  handleAddExerciseToExistingRoutineInput(
+                                    routine.id,
+                                    "reps",
+                                    e.target.value
+                                  )
+                                }
+                                sx={inputSx}
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {exerciseCountOptions.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </Stack>
 
-                            <TextField
-                              label="Equipment (Optional)"
-                              fullWidth
-                              value={addForm.equipment}
-                              onChange={(e) =>
-                                handleAddExerciseToExistingRoutineInput(
-                                  routine.id,
-                                  "equipment",
-                                  e.target.value
-                                )
-                              }
-                              sx={inputSx}
-                            />
+                            <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
+                              <TextField
+                                label="Time"
+                                fullWidth
+                                select
+                                value={addForm.timeValue}
+                                onChange={(e) =>
+                                  handleAddExerciseToExistingRoutineInput(
+                                    routine.id,
+                                    "timeValue",
+                                    e.target.value
+                                  )
+                                }
+                                sx={inputSx}
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {exerciseCountOptions.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+
+                              <TextField
+                                label="Unit"
+                                fullWidth
+                                select
+                                value={addForm.timeUnit}
+                                onChange={(e) =>
+                                  handleAddExerciseToExistingRoutineInput(
+                                    routine.id,
+                                    "timeUnit",
+                                    e.target.value
+                                  )
+                                }
+                                sx={inputSx}
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {timeUnitOptions.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {capitalizeWords(option)}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </Stack>
                           </Stack>
+
+                          <TextField
+                            label="Equipment"
+                            fullWidth
+                            value={addForm.equipment}
+                            onChange={(e) =>
+                              handleAddExerciseToExistingRoutineInput(
+                                routine.id,
+                                "equipment",
+                                e.target.value
+                              )
+                            }
+                            sx={inputSx}
+                          />
 
                           <Button
                             variant="contained"
@@ -1280,6 +1641,7 @@ const Routines = () => {
                             Add Exercise to Routine
                           </Button>
                         </Stack>
+                        )}
                       </Box>
                     </Box>
                   )}
