@@ -116,66 +116,19 @@ const AccountOverview = () => {
             maxWidth: "760px",
           }}
         >
-          Get a quick snapshot of your fitness journey, body goals, routines,
-          and recent workout activity all in one place.
+          A quick snapshot of your fitness journey, body goals, routines,
+          and recent workout activity.
         </Typography>
-      </Box>
-
-      {/* Hero Banner */}
-      <Box
-        sx={{
-          mb: 4,
-          borderRadius: "24px",
-          padding: { xs: "20px", md: "28px" },
-          background:
-            "linear-gradient(135deg, rgba(17,17,17,0.92), rgba(48,102,190,0.88))",
-          color: "#fff",
-          boxShadow: "0 14px 34px rgba(0,0,0,0.20)",
-        }}
-      >
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          justifyContent="space-between"
-          spacing={2}
-          alignItems={{ xs: "flex-start", md: "center" }}
+        <Typography
+          sx={{
+            mt: 1,
+            fontSize: "1rem",
+            color: "rgba(0,0,0,0.7)",
+            maxWidth: "760px",
+          }}
         >
-          <Box>
-            <Typography sx={{ fontSize: "0.95rem", opacity: 0.85, mb: 1 }}>
-              Welcome Back
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: { xs: "1.7rem", md: "2.2rem" },
-                fontWeight: 800,
-              }}
-            >
-              Stay Consistent. Track Progress. Build Better Habits.
-            </Typography>
-            <Typography sx={{ mt: 1, maxWidth: "720px", opacity: 0.92 }}>
-              This dashboard gives you a quick overview of your current health
-              stats, active routines, and latest workout progress.
-            </Typography>
-          </Box>
-
-          <Button
-            variant="contained"
-            sx={{
-              background: "#fff",
-              color: "#111",
-              fontWeight: 700,
-              borderRadius: "14px",
-              px: 3,
-              py: 1.2,
-              boxShadow: "none",
-              "&:hover": {
-                background: "#f1f1f1",
-                boxShadow: "none",
-              },
-            }}
-          >
-            Keep Going
-          </Button>
-        </Stack>
+          Click on the tabs to the left for detailed info. 
+        </Typography>
       </Box>
 
       {/* Summary Cards */}
@@ -195,7 +148,7 @@ const AccountOverview = () => {
             {routines.length}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
-            Active workout routines
+            Number of saved workout routines
           </Typography>
         </Box>
 
@@ -225,18 +178,6 @@ const AccountOverview = () => {
           </Typography>
         </Box>
 
-        <Box sx={infoCardSx}>
-          <Stack direction="row" spacing={1.2} alignItems="center" mb={1}>
-            <TrendingUpRoundedIcon />
-            <Typography sx={{ fontWeight: 700 }}>Daily Goal</Typography>
-          </Stack>
-          <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {dailyGoalStatus}
-          </Typography>
-          <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
-            Progress moving in the right direction
-          </Typography>
-        </Box>
       </Stack>
 
       {/* Main Panels */}
@@ -277,15 +218,14 @@ const AccountOverview = () => {
           <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
             {routines.length > 0 || logs.length > 0 || metrics ? (
               <>
-                Your overview is now based on your real activity. Keep building
+                Your overview is based on your real activity. Keep building
                 routines, logging workouts, and updating body metrics to get a
                 clearer picture of your fitness journey.
               </>
             ) : (
               <>
                 You have not added enough fitness data yet. Start by creating a
-                routine, logging workouts, and entering your body metrics to
-                make this dashboard more useful.
+                routine, logging workouts, and entering your body metrics.
               </>
             )}
           </Typography>

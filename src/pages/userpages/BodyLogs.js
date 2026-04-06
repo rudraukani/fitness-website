@@ -7,7 +7,13 @@ import {
   TextField,
   Typography,
   Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  IconButton,
 } from "@mui/material";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import AccessibilityNewRoundedIcon from "@mui/icons-material/AccessibilityNewRounded";
 import MonitorWeightRoundedIcon from "@mui/icons-material/MonitorWeightRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
@@ -15,17 +21,6 @@ import WaterDropRoundedIcon from "@mui/icons-material/WaterDropRounded";
 import { useAuth } from "../../context/AuthContext";
 import { addBodyMetric, getBodyMetrics } from "../../utils/bodyMetrics";
 
-const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
-
-const emptyBodyMetricsForm = {
-  height: "",
-  weight: "",
-  age: "",
-  gender: "",
-  dailyStepGoal: "",
-  caloriesIntakeGoal: "",
-  waterIntakeGoal: "",
-};
 
 const infoCardSx = {
   flex: 1,
@@ -53,24 +48,90 @@ const inputSx = {
   },
 };
 
+const accordionSx = {
+  background: "transparent",
+  boxShadow: "none",
+  border: "1px solid rgba(255,255,255,0.18)",
+  borderRadius: "18px !important",
+  mb: 1.5,
+  "&:before": {
+    display: "none",
+  },
+};
+
+const formatMetricValue = (value, unit = "") => {
+  if (value === null || value === undefined || value === "") return "-";
+  return unit ? `${value} ${unit}` : value;
+};
+
+const formatValueForInput = (value, fallback = "") => {
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
+};
+
+const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
+const heightUnitOptions = ["cm", "in"];
+const weightUnitOptions = ["kg", "lbs"];
+
+
+const emptyInitialMetricsForm = {
+  height: "",
+  heightUnit: "cm",
+  weight: "",
+  weightUnit: "kg",
+  age: "",
+  gender: "",
+};
+
+const emptyGoalsForm = {
+  dailyStepGoal: "",
+  caloriesIntakeGoal: "",
+  waterIntakeGoal: "",
+};
+
+const emptyLogForm = {
+  weight: "",
+  weightUnit: "kg",
+};
+
 const BodyLogs = () => {
   const { currentUser } = useAuth();
-  const [formData, setFormData] = useState(emptyBodyMetricsForm);
+  const [initialMetricsForm, setInitialMetricsForm] = useState(emptyInitialMetricsForm);
+  const [goalsForm, setGoalsForm] = useState(emptyGoalsForm);
+  const [logForm, setLogForm] = useState(emptyLogForm);
   const [savedMetrics, setSavedMetrics] = useState(null);
+  const [expandedPanel, setExpandedPanel] = useState("initial-metrics");
+  const [isInitialEditing, setIsInitialEditing] = useState(true);
+  const [isGoalsEditing, setIsGoalsEditing] = useState(true);
   const [formError, setFormError] = useState("");
 
   const calculatedBMI = useMemo(() => {
-    const heightCm = parseFloat(formData.height);
-    const weightKg = parseFloat(formData.weight);
+    const height = parseFloat(initialMetricsForm.height);
+    const weight = parseFloat(initialMetricsForm.weight);
 
-    if (!heightCm || !weightKg || heightCm <= 0 || weightKg <= 0) {
-      return "";
-    }
+    if (!height || !weight) return "";
 
-    const heightMeters = heightCm / 100;
+    // convert height to meters
+    const heightMeters =
+      initialMetricsForm.heightUnit === "cm"
+        ? height / 100
+        : height * 0.0254;
+
+    // convert weight to kg
+    const weightKg =
+      initialMetricsForm.weightUnit === "kg"
+        ? weight
+        : weight * 0.453592;
+
     const bmi = weightKg / (heightMeters * heightMeters);
-    return bmi.toFixed(2);
-  }, [formData.height, formData.weight]);
+
+    return bmi.toFixed(1);
+  }, [
+    initialMetricsForm.height,
+    initialMetricsForm.heightUnit,
+    initialMetricsForm.weight,
+    initialMetricsForm.weightUnit,
+  ]);
 
   const savedBMI = useMemo(() => {
     if (!savedMetrics) return "";
@@ -91,83 +152,239 @@ const BodyLogs = () => {
     const loadMetrics = async () => {
       if (!currentUser) {
         setSavedMetrics(null);
+        setInitialMetricsForm(emptyInitialMetricsForm);
+        setGoalsForm(emptyGoalsForm);
+        setLogForm(emptyLogForm);
         return;
       }
 
       try {
-        const firestoreMetrics = await getBodyMetrics(currentUser.uid);
-        const latestMetric = firestoreMetrics[0] || null;
-
+        const metrics = await getBodyMetrics(currentUser.uid);
+        const latestMetric = metrics[0] || null;
         setSavedMetrics(latestMetric);
 
         if (latestMetric) {
-          setFormData({
-            height: latestMetric.height || "",
-            weight: latestMetric.weight || "",
-            age: latestMetric.age || "",
+          setInitialMetricsForm({
+            height: formatValueForInput(latestMetric.height),
+            heightUnit: latestMetric.heightUnit || "cm",
+            weight: formatValueForInput(
+              latestMetric.initialWeight ?? latestMetric.weight
+            ),
+            weightUnit:
+              latestMetric.initialWeightUnit ||
+              latestMetric.weightUnit ||
+              "kg",
+            age: formatValueForInput(latestMetric.age),
             gender: latestMetric.gender || "",
-            dailyStepGoal: latestMetric.dailyStepGoal || "",
-            caloriesIntakeGoal: latestMetric.caloriesIntakeGoal || "",
-            waterIntakeGoal: latestMetric.waterIntakeGoal || "",
           });
-        } else {
-          setFormData(emptyBodyMetricsForm);
+
+          setGoalsForm({
+            dailyStepGoal: formatValueForInput(latestMetric.dailyStepGoal),
+            caloriesIntakeGoal: formatValueForInput(
+              latestMetric.caloriesIntakeGoal
+            ),
+            waterIntakeGoal: formatValueForInput(latestMetric.waterIntakeGoal),
+          });
+
+          setLogForm((prev) => ({
+            ...prev,
+            weightUnit: latestMetric.weightUnit || "kg",
+          }));
+
+          setIsInitialEditing(false);
+          setIsGoalsEditing(false);
         }
       } catch (error) {
-        console.error("Load body metrics error:", error);
-        setSavedMetrics(null);
+        console.error("Load metrics error:", error);
       }
     };
 
     loadMetrics();
   }, [currentUser]);
 
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
+  const handlePanelChange = (panel) => (_, isExpanded) => {
+  setExpandedPanel(isExpanded ? panel : false);
+};
+
+  const handleInitialMetricsChange = (field, value) => {
+    setInitialMetricsForm((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleSubmitMetrics = async () => {
-    const trimmedData = {
-      height: formData.height.trim(),
-      weight: formData.weight.trim(),
-      age: formData.age.trim(),
-      gender: formData.gender.trim(),
-      dailyStepGoal: formData.dailyStepGoal.trim(),
-      caloriesIntakeGoal: formData.caloriesIntakeGoal.trim(),
-      waterIntakeGoal: formData.waterIntakeGoal.trim(),
-    };
+  const handleGoalsChange = (field, value) => {
+    setGoalsForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-    if (
-      !trimmedData.height ||
-      !trimmedData.weight ||
-      !trimmedData.age ||
-      !trimmedData.gender ||
-      !trimmedData.dailyStepGoal ||
-      !trimmedData.caloriesIntakeGoal ||
-      !trimmedData.waterIntakeGoal
-    ) {
-      setFormError("Please fill in all body metric fields before submitting.");
+  const handleLogChange = (field, value) => {
+    setLogForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveInitialMetrics = async () => {
+    if (!initialMetricsForm.height || !initialMetricsForm.weight) {
+      setFormError("Height and weight are required.");
       return;
     }
 
     if (!currentUser) {
-      setFormError("Please log in to save body metrics.");
+      setFormError("Please log in to save.");
       return;
     }
 
-    try {
-      await addBodyMetric(currentUser.uid, trimmedData);
-      const firestoreMetrics = await getBodyMetrics(currentUser.uid);
-      const latestMetric = firestoreMetrics[0] || null;
+    const payload = {
+      height: initialMetricsForm.height,
+      heightUnit: initialMetricsForm.heightUnit || "cm",
+      weight: initialMetricsForm.weight,
+      weightUnit: initialMetricsForm.weightUnit || "kg",
+      age: initialMetricsForm.age || "",
+      gender: initialMetricsForm.gender || "",
+      dailyStepGoal: goalsForm.dailyStepGoal || savedMetrics?.dailyStepGoal || "",
+      caloriesIntakeGoal:
+        goalsForm.caloriesIntakeGoal || savedMetrics?.caloriesIntakeGoal || "",
+      waterIntakeGoal:
+        goalsForm.waterIntakeGoal || savedMetrics?.waterIntakeGoal || "",
+      logWeight: savedMetrics?.weight || "",
+      logWeightUnit: savedMetrics?.weightUnit || "kg",
+    };
 
+    try {
+      await addBodyMetric(currentUser.uid, payload);
+      const metrics = await getBodyMetrics(currentUser.uid);
+      const latestMetric = metrics[0] || null;
       setSavedMetrics(latestMetric);
       setFormError("");
+      setIsInitialEditing(false);
     } catch (error) {
-      console.error("Save body metrics error:", error);
-      setFormError("Failed to save body metrics.");
+      console.error("Failed to save initial metrics:", error);
+      setFormError("Failed to save initial metrics.");
+    }
+  };
+
+
+  const handleSaveGoals = async () => {
+    if (!currentUser) {
+      setFormError("Please log in to save.");
+      return;
+    }
+
+    const payload = {
+      height: initialMetricsForm.height || savedMetrics?.height || "",
+      heightUnit: initialMetricsForm.heightUnit || savedMetrics?.heightUnit || "cm",
+      weight:
+        initialMetricsForm.weight ||
+        savedMetrics?.initialWeight ||
+        savedMetrics?.weight ||
+        "",
+      weightUnit:
+        initialMetricsForm.weightUnit ||
+        savedMetrics?.initialWeightUnit ||
+        savedMetrics?.weightUnit ||
+        "kg",
+      age: initialMetricsForm.age || savedMetrics?.age || "",
+      gender: initialMetricsForm.gender || savedMetrics?.gender || "",
+      dailyStepGoal: goalsForm.dailyStepGoal || "",
+      caloriesIntakeGoal: goalsForm.caloriesIntakeGoal || "",
+      waterIntakeGoal: goalsForm.waterIntakeGoal || "",
+      logWeight: savedMetrics?.weight || "",
+      logWeightUnit: savedMetrics?.weightUnit || "kg",
+    };
+
+    try {
+      await addBodyMetric(currentUser.uid, payload);
+      const metrics = await getBodyMetrics(currentUser.uid);
+      const latestMetric = metrics[0] || null;
+      setSavedMetrics(latestMetric);
+      setFormError("");
+      setIsGoalsEditing(false);
+    } catch (error) {
+      console.error("Failed to save goals:", error);
+      setFormError("Failed to save goals.");
+    }
+  };
+
+  const handleSubmitLog = async () => {
+    if (!logForm.weight) {
+      setFormError("Weight is required.");
+      return;
+    }
+
+    if (!currentUser) {
+      setFormError("Please log in to save.");
+      return;
+    }
+
+    const payload = {
+      height: initialMetricsForm.height || savedMetrics?.height || "",
+      heightUnit: initialMetricsForm.heightUnit || savedMetrics?.heightUnit || "cm",
+      weight:
+        initialMetricsForm.weight ||
+        savedMetrics?.initialWeight ||
+        savedMetrics?.weight ||
+        "",
+      weightUnit:
+        initialMetricsForm.weightUnit ||
+        savedMetrics?.initialWeightUnit ||
+        savedMetrics?.weightUnit ||
+        "kg",
+      age: initialMetricsForm.age || savedMetrics?.age || "",
+      gender: initialMetricsForm.gender || savedMetrics?.gender || "",
+      dailyStepGoal:
+        goalsForm.dailyStepGoal || savedMetrics?.dailyStepGoal || "",
+      caloriesIntakeGoal:
+        goalsForm.caloriesIntakeGoal || savedMetrics?.caloriesIntakeGoal || "",
+      waterIntakeGoal:
+        goalsForm.waterIntakeGoal || savedMetrics?.waterIntakeGoal || "",
+      logWeight: logForm.weight,
+      logWeightUnit: logForm.weightUnit,
+    };
+
+    try {
+      await addBodyMetric(currentUser.uid, payload);
+      const metrics = await getBodyMetrics(currentUser.uid);
+      const latestMetric = metrics[0] || null;
+
+      setSavedMetrics(latestMetric);
+
+      if (latestMetric) {
+        setInitialMetricsForm({
+          height: formatValueForInput(latestMetric.height),
+          heightUnit: latestMetric.heightUnit || "cm",
+          weight: formatValueForInput(
+            latestMetric.initialWeight ?? latestMetric.weight
+          ),
+          weightUnit:
+            latestMetric.initialWeightUnit ||
+            latestMetric.weightUnit ||
+            "kg",
+          age: formatValueForInput(latestMetric.age),
+          gender: latestMetric.gender || "",
+        });
+
+        setGoalsForm({
+          dailyStepGoal: formatValueForInput(latestMetric.dailyStepGoal),
+          caloriesIntakeGoal: formatValueForInput(
+            latestMetric.caloriesIntakeGoal
+          ),
+          waterIntakeGoal: formatValueForInput(latestMetric.waterIntakeGoal),
+        });
+      }
+
+      setLogForm((prev) => ({
+        ...prev,
+        weight: "",
+      }));
+
+      setFormError("");
+    } catch (error) {
+      console.error("Failed to save log:", error);
+      setFormError("Failed to save log.");
     }
   };
 
@@ -211,7 +428,9 @@ const BodyLogs = () => {
             <Typography sx={{ fontWeight: 700 }}>Height</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {savedMetrics?.height ? `${savedMetrics.height} cm` : "-"}
+            {savedMetrics?.height
+              ? `${savedMetrics.height} ${savedMetrics.heightUnit || "cm"}`
+              : "-"}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Current recorded height
@@ -224,7 +443,9 @@ const BodyLogs = () => {
             <Typography sx={{ fontWeight: 700 }}>Weight</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {savedMetrics?.weight ? `${savedMetrics.weight} kg` : "-"}
+            {savedMetrics?.weight
+              ? `${savedMetrics.weight} ${savedMetrics.weightUnit || "kg"}`
+              : "-"}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Current recorded weight
@@ -260,215 +481,419 @@ const BodyLogs = () => {
         </Box>
       </Stack>
 
-      <Box sx={{ ...panelSx, mb: 4 }}>
-        <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, mb: 1 }}>
-          Add Body Metrics
-        </Typography>
-
-        <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>
-          Enter your current measurements and goals. BMI is calculated
-          automatically based on your height and weight.
-        </Typography>
-
-        <Stack spacing={2.2}>
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <TextField
-              label="Height (cm)"
-              fullWidth
-              value={formData.height}
-              onChange={(e) => handleInputChange("height", e.target.value)}
-              sx={inputSx}
-            />
-
-            <TextField
-              label="Weight (kg)"
-              fullWidth
-              value={formData.weight}
-              onChange={(e) => handleInputChange("weight", e.target.value)}
-              sx={inputSx}
-            />
-          </Stack>
-
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <TextField
-              label="Age"
-              fullWidth
-              value={formData.age}
-              onChange={(e) => handleInputChange("age", e.target.value)}
-              sx={inputSx}
-            />
-
-            <TextField
-              select
-              label="Gender"
-              fullWidth
-              value={formData.gender}
-              onChange={(e) => handleInputChange("gender", e.target.value)}
-              sx={inputSx}
+            <Box sx={{ ...panelSx, mb: 4 }}>
+        <Accordion
+          expanded={expandedPanel === "initial-metrics"}
+          onChange={handlePanelChange("initial-metrics")}
+          sx={accordionSx}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={1}
+              sx={{ width: "100%" }}
             >
-              {genderOptions.map((gender) => (
-                <MenuItem key={gender} value={gender}>
-                  {gender}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
+              <Box>
+                <Typography sx={{ fontSize: "1.35rem", fontWeight: 800 }}>
+                  Initial Metrics
+                </Typography>
+                <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
+                  Save your baseline height, weight, age, and gender.
+                </Typography>
+              </Box>
 
-          <TextField
-            label="BMI"
-            fullWidth
-            value={calculatedBMI}
-            InputProps={{ readOnly: true }}
-            sx={inputSx}
-          />
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Chip
+                  label={`Height: ${formatMetricValue(
+                    initialMetricsForm.height,
+                    initialMetricsForm.heightUnit
+                  )}`}
+                  size="small"
+                />
+                <Chip
+                  label={`Weight: ${formatMetricValue(
+                    initialMetricsForm.weight,
+                    initialMetricsForm.weightUnit
+                  )}`}
+                  size="small"
+                />
+                <IconButton
+                  size="small"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsInitialEditing(true);
+                    setExpandedPanel("initial-metrics");
+                  }}
+                  sx={{
+                    background: "rgba(17,17,17,0.06)",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            </Stack>
+          </AccordionSummary>
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <TextField
-              label="Daily Step Goal"
-              fullWidth
-              value={formData.dailyStepGoal}
-              onChange={(e) =>
-                handleInputChange("dailyStepGoal", e.target.value)
-              }
-              sx={inputSx}
-            />
+          <AccordionDetails>
+            <Stack spacing={2.2}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                useFlexGap
+                flexWrap="wrap"
+              >
+                <TextField
+                  label="Height"
+                  type="number"
+                  fullWidth
+                  required
+                  value={initialMetricsForm.height}
+                  onChange={(e) =>
+                    handleInitialMetricsChange("height", e.target.value)
+                  }
+                  disabled={!isInitialEditing}
+                  sx={inputSx}
+                />
 
-            <TextField
-              label="Calories Intake Goal"
-              fullWidth
-              value={formData.caloriesIntakeGoal}
-              onChange={(e) =>
-                handleInputChange("caloriesIntakeGoal", e.target.value)
-              }
-              sx={inputSx}
-            />
-          </Stack>
+                <TextField
+                  select
+                  label="Unit"
+                  value={initialMetricsForm.heightUnit}
+                  onChange={(e) =>
+                    handleInitialMetricsChange("heightUnit", e.target.value)
+                  }
+                  disabled={!isInitialEditing}
+                  sx={{ ...inputSx, minWidth: { xs: "100%", md: "140px" } }}
+                >
+                  {heightUnitOptions.map((unit) => (
+                    <MenuItem key={unit} value={unit}>
+                      {unit}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
 
-          <TextField
-            label="Water Intake Goal (L)"
-            fullWidth
-            value={formData.waterIntakeGoal}
-            onChange={(e) =>
-              handleInputChange("waterIntakeGoal", e.target.value)
-            }
-            sx={inputSx}
-          />
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                useFlexGap
+                flexWrap="wrap"
+              >
+                <TextField
+                  label="Weight"
+                  type="number"
+                  fullWidth
+                  required
+                  value={initialMetricsForm.weight}
+                  onChange={(e) =>
+                    handleInitialMetricsChange("weight", e.target.value)
+                  }
+                  disabled={!isInitialEditing}
+                  sx={inputSx}
+                />
 
-          {formError && (
-            <Typography sx={{ color: "#b42318", fontWeight: 600 }}>
-              {formError}
-            </Typography>
-          )}
+                <TextField
+                  select
+                  label="Unit"
+                  value={initialMetricsForm.weightUnit}
+                  onChange={(e) =>
+                    handleInitialMetricsChange("weightUnit", e.target.value)
+                  }
+                  disabled={!isInitialEditing}
+                  sx={{ ...inputSx, minWidth: { xs: "100%", md: "140px" } }}
+                >
+                  {weightUnitOptions.map((unit) => (
+                    <MenuItem key={unit} value={unit}>
+                      {unit}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
 
-          <Button
-            variant="contained"
-            onClick={handleSubmitMetrics}
-            sx={{
-              alignSelf: "flex-start",
-              background: "#111",
-              color: "#fff",
-              fontWeight: 700,
-              borderRadius: "14px",
-              px: 3,
-              py: 1.1,
-              boxShadow: "none",
-              "&:hover": {
-                background: "#222",
-                boxShadow: "none",
-              },
-            }}
-          >
-            Submit
-          </Button>
-        </Stack>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                useFlexGap
+                flexWrap="wrap"
+              >
+                <TextField
+                  label="Age"
+                  type="number"
+                  fullWidth
+                  value={initialMetricsForm.age}
+                  onChange={(e) =>
+                    handleInitialMetricsChange("age", e.target.value)
+                  }
+                  disabled={!isInitialEditing}
+                  sx={inputSx}
+                />
+
+                <TextField
+                  select
+                  label="Gender"
+                  fullWidth
+                  value={initialMetricsForm.gender}
+                  onChange={(e) =>
+                    handleInitialMetricsChange("gender", e.target.value)
+                  }
+                  disabled={!isInitialEditing}
+                  sx={inputSx}
+                >
+                  <MenuItem value="">Select</MenuItem>
+                  {genderOptions.map((gender) => (
+                    <MenuItem key={gender} value={gender}>
+                      {gender}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+
+              {isInitialEditing && (
+                <Button
+                  variant="contained"
+                  onClick={handleSaveInitialMetrics}
+                  sx={{
+                    alignSelf: "flex-start",
+                    background: "#111",
+                    color: "#fff",
+                    fontWeight: 700,
+                    borderRadius: "14px",
+                    px: 3,
+                    py: 1.1,
+                    boxShadow: "none",
+                    "&:hover": {
+                      background: "#222",
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  Save Initial Metrics
+                </Button>
+              )}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+
+        <Accordion
+          expanded={expandedPanel === "goals"}
+          onChange={handlePanelChange("goals")}
+          sx={accordionSx}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={1}
+              sx={{ width: "100%" }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: "1.35rem", fontWeight: 800 }}>
+                  Goals
+                </Typography>
+                <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
+                  Set flexible daily targets for steps, calories, and water.
+                </Typography>
+              </Box>
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Chip
+                  label={`Steps: ${formatMetricValue(goalsForm.dailyStepGoal)}`}
+                  size="small"
+                />
+                <Chip
+                  label={`Water: ${formatMetricValue(
+                    goalsForm.waterIntakeGoal,
+                    goalsForm.waterIntakeGoal ? "L" : ""
+                  )}`}
+                  size="small"
+                />
+                <IconButton
+                  size="small"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsGoalsEditing(true);
+                    setExpandedPanel("goals");
+                  }}
+                  sx={{
+                    background: "rgba(17,17,17,0.06)",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            </Stack>
+          </AccordionSummary>
+
+          <AccordionDetails>
+            <Stack spacing={2.2}>
+              <TextField
+                label="Daily Step Goal"
+                type="number"
+                fullWidth
+                value={goalsForm.dailyStepGoal}
+                onChange={(e) =>
+                  handleGoalsChange("dailyStepGoal", e.target.value)
+                }
+                disabled={!isGoalsEditing}
+                sx={inputSx}
+              />
+
+              <TextField
+                label="Calorie Intake Goal"
+                type="number"
+                fullWidth
+                value={goalsForm.caloriesIntakeGoal}
+                onChange={(e) =>
+                  handleGoalsChange("caloriesIntakeGoal", e.target.value)
+                }
+                disabled={!isGoalsEditing}
+                sx={inputSx}
+              />
+
+              <TextField
+                label="Water Intake Goal (L)"
+                type="number"
+                fullWidth
+                value={goalsForm.waterIntakeGoal}
+                onChange={(e) =>
+                  handleGoalsChange("waterIntakeGoal", e.target.value)
+                }
+                disabled={!isGoalsEditing}
+                sx={inputSx}
+              />
+
+              {isGoalsEditing && (
+                <Button
+                  variant="contained"
+                  onClick={handleSaveGoals}
+                  sx={{
+                    alignSelf: "flex-start",
+                    background: "#111",
+                    color: "#fff",
+                    fontWeight: 700,
+                    borderRadius: "14px",
+                    px: 3,
+                    py: 1.1,
+                    boxShadow: "none",
+                    "&:hover": {
+                      background: "#222",
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  Save Goals
+                </Button>
+              )}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+
+        <Accordion
+          expanded={expandedPanel === "log"}
+          onChange={handlePanelChange("log")}
+          sx={accordionSx}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={1}
+              sx={{ width: "100%" }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: "1.35rem", fontWeight: 800 }}>
+                  Log
+                </Typography>
+                <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
+                  Log your weight for progress tracking. 
+                </Typography>
+              </Box>
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Chip
+                  label={`Weight: ${formatMetricValue(
+                    logForm.weight,
+                    logForm.weightUnit
+                  )}`}
+                  size="small"
+                />
+              </Stack>
+
+
+            </Stack>
+          </AccordionSummary>
+
+          <AccordionDetails>
+            <Stack spacing={2.2}>
+
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                useFlexGap
+                flexWrap="wrap"
+              >
+                <TextField
+                  label="Weight"
+                  type="number"
+                  fullWidth
+                  required
+                  value={logForm.weight}
+                  onChange={(e) => handleLogChange("weight", e.target.value)}
+                  sx={inputSx}
+                />
+
+                <TextField
+                  select
+                  label="Unit"
+                  value={logForm.weightUnit}
+                  onChange={(e) => handleLogChange("weightUnit", e.target.value)}
+                  sx={{ ...inputSx, minWidth: { xs: "100%", md: "140px" } }}
+                >
+                  {weightUnitOptions.map((unit) => (
+                    <MenuItem key={unit} value={unit}>
+                      {unit}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+
+              {formError && (
+                <Typography sx={{ color: "#b42318", fontWeight: 600 }}>
+                  {formError}
+                </Typography>
+              )}
+
+              <Button
+                variant="contained"
+                onClick={handleSubmitLog}
+                sx={{
+                  alignSelf: "flex-start",
+                  background: "#111",
+                  color: "#fff",
+                  fontWeight: 700,
+                  borderRadius: "14px",
+                  px: 3,
+                  py: 1.1,
+                  boxShadow: "none",
+                  "&:hover": {
+                    background: "#222",
+                    boxShadow: "none",
+                  },
+                }}
+              >
+                Submit Log
+              </Button>
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
       </Box>
 
-      {savedMetrics ? (
-        <Box sx={panelSx}>
-          <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, mb: 2 }}>
-            Saved Body Metrics
-          </Typography>
-
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.5}
-            useFlexGap
-            flexWrap="wrap"
-            sx={{ mb: 3 }}
-          >
-            <Chip label={`Height: ${savedMetrics.height} cm`} />
-            <Chip label={`Weight: ${savedMetrics.weight} kg`} />
-            <Chip label={`Age: ${savedMetrics.age}`} />
-            <Chip label={`Gender: ${savedMetrics.gender}`} />
-            <Chip label={`BMI: ${savedBMI}`} />
-            <Chip label={`Step Goal: ${savedMetrics.dailyStepGoal}`} />
-            <Chip label={`Calories Goal: ${savedMetrics.caloriesIntakeGoal}`} />
-            <Chip label={`Water Goal: ${savedMetrics.waterIntakeGoal} L`} />
-          </Stack>
-
-          <Stack spacing={1.2}>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Height:</strong> {savedMetrics.height} cm
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Weight:</strong> {savedMetrics.weight} kg
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Age:</strong> {savedMetrics.age}
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Gender:</strong> {savedMetrics.gender}
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>BMI:</strong> {savedBMI}
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Daily Step Goal:</strong> {savedMetrics.dailyStepGoal}
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Calories Intake Goal:</strong>{" "}
-              {savedMetrics.caloriesIntakeGoal}
-            </Typography>
-            <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
-              <strong>Water Intake Goal:</strong> {savedMetrics.waterIntakeGoal} L
-            </Typography>
-          </Stack>
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            borderRadius: "24px",
-            padding: { xs: "24px", md: "36px" },
-            background: "rgba(255,255,255,0.42)",
-            border: "1px solid rgba(255,255,255,0.18)",
-            textAlign: "center",
-          }}
-        >
-          <Typography sx={{ fontSize: "1.6rem", fontWeight: 800, mb: 1 }}>
-            No body metrics added yet
-          </Typography>
-
-          <Typography sx={{ color: "rgba(0,0,0,0.7)" }}>
-            Fill in your body metrics and submit them to start tracking your
-            health goals.
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 };

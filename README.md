@@ -1,7 +1,7 @@
 # FITSCOUT (React Web Application)
 Built with React, Firebase (Auth + Firestore), Material UI, Emotion, ExerciseDB from RapidAPI, Recharts.  
 
-# INSTALLATION: 
+## INSTALLATION: 
 1. Clone the repository 
     git clone <https://github.com/rudraukani/fitness-website>
     cd fitness-website
@@ -16,6 +16,6 @@ Built with React, Firebase (Auth + Firestore), Material UI, Emotion, ExerciseDB 
     npm install firebase
     npm install recharts
 
-# RUN THE APP: 
+## RUN THE APP: 
     npm start
 
