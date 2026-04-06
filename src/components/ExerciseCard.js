@@ -53,7 +53,7 @@ const ExerciseCard = ({ exercise, gifUrl, onFavoriteChange }) => {
     e.stopPropagation();
 
     if (!currentUser) {
-      navigate('/account');
+      alert('Please sign in to save exercises!');
       return;
     }
 

@@ -4,6 +4,9 @@
     --bkg: #d9d9d9;
     --main: #000;
     --highlight: #3066BE;
+    --pink: #B95F89;
+    --green: #21A179;
+    --yellow: #CA8216;
 }
 
 * {
@@ -140,50 +143,74 @@ h3 {
 }
 
 .features-div {
-    background-color: rgba(217, 217, 217, 0.8);
     display: flex;
     flex-direction: column;
     font-family: 'IBM Plex Sans', sans-serif;
+    align-items: center;
 }
 
 .general-descrip-div {
+    height: fit-content;
+    width: fit-content;
     display: flex;
     flex-direction: column;
     font-weight: 600;
     align-items: center;
     line-height: 2em;
     font-size: 1.1em;
-    padding: 3em;
-    padding-bottom: 2em;
+    padding: 1.5em;
+    background-color: var(--pink);
+    border-radius: 25px;
 }
 
-.descip-div {
-    display: flex;
+.blank-div3 {
+    height: 7vh;
     width: 100vw;
-    height: 25vh;
-    justify-content: space-around;
-    padding-bottom: 2em; 
+}
+
+.info-columns {
+    width: 100%;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.descip-div1, .descip-div2 {
+    display: flex;
+    flex-direction: column;
+    width: 42%;
+    height: fit-content;
+    padding-top: 1.5em;
+    padding-bottom: 1.5em;
+    border-radius: 25px;
+}
+
+.descip-div1 {
+    background-color: var(--green);
+}
+
+.descip-div2 {
+    background-color: var(--yellow);
 }
 
 .subtitle {
-    width: 50vw;
-    font-size: 1.5em;
-    font-weight: 500;
+    font-size: 1.1em;
+    font-weight: 600;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-bottom: 0.5em;
+
 }
 
 .descrip {
-    width: 50vw;
     font-size: 1em;
     font-weight: 500;
-    padding-left: 5em;
     line-height: 2em;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
+
 
 

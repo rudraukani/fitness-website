@@ -1,9 +1,9 @@
 import {
   collection,
   addDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
-  getDocs,
   getDoc,
   doc,
   query,
@@ -12,8 +12,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-export const addRoutine = async (uid, routineData) => {
-  const routinesRef = collection(db, "users", uid, "routines");
+const getRoutinesCollection = (userId) =>
+  collection(db, "users", userId, "routines");
+
+export const addRoutine = async (userId, routineData) => {
+  const routinesCollection = getRoutinesCollection(userId);
 
   const payload = {
     title: routineData.title || "",
@@ -30,35 +33,19 @@ export const addRoutine = async (uid, routineData) => {
     updatedAt: serverTimestamp(),
   };
 
-  const docRef = await addDoc(routinesRef, payload);
-  return docRef.id;
+  const docRef = await addDoc(routinesCollection, payload);
+  return { id: docRef.id, ...payload };
 };
 
-export const updateRoutine = async (uid, routineId, routineData) => {
-  const routineRef = doc(db, "users", uid, "routines", routineId);
-
-  const payload = {
-    ...routineData,
-    updatedAt: serverTimestamp(),
-  };
-
-  await updateDoc(routineRef, payload);
-};
-
-export const deleteRoutine = async (uid, routineId) => {
-  const routineRef = doc(db, "users", uid, "routines", routineId);
-  await deleteDoc(routineRef);
-};
-
-export const getRoutines = async (uid) => {
+export const getRoutines = async (userId) => {
   try {
-    const routinesRef = collection(db, "users", uid, "routines");
-    const q = query(routinesRef, orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
+    const routinesCollection = getRoutinesCollection(userId);
+    const q = query(routinesCollection, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
 
-    return snap.docs.map((docItem) => ({
-      id: docItem.id,
-      ...docItem.data(),
+    return querySnapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     }));
   } catch (error) {
     console.error("Get routines error:", error);
@@ -66,9 +53,26 @@ export const getRoutines = async (uid) => {
   }
 };
 
-export const getSingleRoutine = async (uid, routineId) => {
+export const updateRoutine = async (userId, routineId, routineData) => {
+  const routineRef = doc(db, "users", userId, "routines", routineId);
+
+  const payload = {
+    ...routineData,
+    updatedAt: serverTimestamp(),
+  };
+
+  await updateDoc(routineRef, payload);
+  return routineId;
+};
+
+export const deleteRoutine = async (userId, routineId) => {
+  const routineRef = doc(db, "users", userId, "routines", routineId);
+  await deleteDoc(routineRef);
+};
+
+export const getSingleRoutine = async (userId, routineId) => {
   try {
-    const routineRef = doc(db, "users", uid, "routines", routineId);
+    const routineRef = doc(db, "users", userId, "routines", routineId);
     const snap = await getDoc(routineRef);
 
     if (!snap.exists()) return null;

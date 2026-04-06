@@ -120,6 +120,31 @@ const WorkoutLogs = () => {
   };
 
   useEffect(() => {
+ 
+
+    const loadData = async () => {
+      if (!currentUser) {
+        setLogs([]);
+        setRoutines([]);
+        return;
+      }
+
+      try {
+        const [firestoreLogs, firestoreRoutines] = await Promise.all([
+          getWorkoutLogs(currentUser.uid),
+          getRoutines(currentUser.uid),
+        ]);
+
+        setLogs(firestoreLogs);
+        setRoutines(firestoreRoutines);
+      } catch (error) {
+        console.error("Load workout data error:", error);
+        setLogs([]);
+        setRoutines([]);
+      }
+    };
+
+
     loadData();
   }, [currentUser]);
 
@@ -242,7 +267,12 @@ const WorkoutLogs = () => {
 
       await addWorkoutLog(currentUser.uid, payload);
 
+
       await loadLogs();
+
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);  
+      setLogs(firestoreLogs);
+
       setFormData(emptyLogForm);
       setSelectedRoutine(null);
       setExercisePerformance({});
@@ -258,7 +288,12 @@ const WorkoutLogs = () => {
 
     try {
       await deleteWorkoutLog(currentUser.uid, logId);
+
       await loadLogs();
+
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+      setLogs(firestoreLogs);
+
     } catch (error) {
       console.error("Delete workout log error:", error);
     }

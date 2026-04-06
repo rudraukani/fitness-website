@@ -39,7 +39,7 @@ const UserAccount = () => {
     	sx={{
         position: "relative",
         zIndex: 1,
-        minHeight: "100vh",
+        height: "93vh",
 				position: "relative",
 				display: "flex",
         flexDirection: "column",
@@ -92,7 +92,16 @@ const UserAccount = () => {
         {/* data content div */}
         <Box
           sx={{
+            position: "relative",
+            zIndex: 1,
             display: "flex",
+            flex: 1,            
+            minHeight: 0,
+            maxHeight: '80%',       
+            width: "95%",
+            justifyContent: "center",
+            px: 2,
+            pb: 2,
           }}
         >
 
@@ -114,10 +123,9 @@ const UserAccount = () => {
             sx={{
               position: "relative",
               zIndex: 1,
-              flex: 1, 
-              minHeight: "70vh",
-              minWidth: "70vw", 
+              flex: 1,  
               p: 3, 
+              overflowY: "auto", 
               borderTopRightRadius:"15px",
               borderBottomRadius:"15px",
               borderBottomLeftRadius:"15px",

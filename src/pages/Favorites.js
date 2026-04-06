@@ -102,8 +102,8 @@ const Favorites = () => {
         {!currentUser ? (
           <Typography
             sx={{
-              color: colors.main,
-              fontFamily: "'Contrail One', sans-serif",
+              color: colors.bkg,
+              fontFamily: "'IBM Plex Sans', sans-serif",
               fontSize: '1.3rem',
               textAlign: 'center',
             }}
