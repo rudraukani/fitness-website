@@ -63,8 +63,9 @@ const AccountOverview = () => {
         setRoutines(Array.isArray(routinesData) ? routinesData : []);
         setLogs(Array.isArray(logsData) ? logsData : []);
 
+        // newest metric first because helper already orders by createdAt desc
         if (Array.isArray(metricsData) && metricsData.length > 0) {
-          setMetrics(metricsData[metricsData.length - 1]);
+          setMetrics(metricsData[0]);
         } else {
           setMetrics(null);
         }
@@ -130,7 +131,6 @@ const AccountOverview = () => {
       focus: latestLog.routineSnapshot?.focus || "",
       level: latestLog.routineSnapshot?.level || "",
       duration: latestLog.routineSnapshot?.duration || "-",
-      frequency: latestLog.routineSnapshot?.frequency || "-",
       exercisesCount: exercises.length,
       firstExerciseName: firstExercise?.exerciseName || "-",
       firstExerciseEquipment: firstExercise?.equipment || "None",
@@ -319,7 +319,7 @@ const AccountOverview = () => {
                   <Typography sx={{ fontWeight: 700 }}>Daily Step Goal</Typography>
                 </Stack>
                 <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  {metrics?.dailyStepGoal || "-"}
+                  {metrics?.dailyStepGoal ?? "-"}
                 </Typography>
               </Box>
 
@@ -331,7 +331,7 @@ const AccountOverview = () => {
                   </Typography>
                 </Stack>
                 <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  {metrics?.caloriesIntakeGoal || "-"}
+                  {metrics?.caloriesIntakeGoal ?? "-"}
                 </Typography>
               </Box>
 

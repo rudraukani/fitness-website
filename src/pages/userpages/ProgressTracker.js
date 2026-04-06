@@ -794,7 +794,10 @@ const ProgressTracker = () => {
                           style={{ textAnchor: "middle" }}
                         />
                       </YAxis>
-                      <Tooltip content={valueOnlyTooltip} />
+                      <Tooltip
+                      formatter={(value) => [`${value} kg`, "Weight"]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                      />
                       <Line
                         type="monotone"
                         dataKey="weight"
