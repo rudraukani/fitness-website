@@ -23,7 +23,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { getRoutines } from "../../utils/routines";
 import { getWorkoutLogs } from "../../utils/workoutLogs";
-import { getBodyMetrics } from "../../utils/bodyMetrics";
+import { getBodyMetrics, getBodyMetricLogs } from "../../utils/bodyMetrics";
 
 const infoCardSx = {
   flex: 1,
@@ -74,8 +74,22 @@ const monthOptions = (() => {
 
 const parseAnyDate = (value) => {
   if (!value) return null;
+
+  if (typeof value === "object" && value !== null) {
+    if (typeof value.toDate === "function") {
+      const d = value.toDate();
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    if ("seconds" in value && typeof value.seconds === "number") {
+      const d = new Date(value.seconds * 1000);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+  }
+
   const date = new Date(value);
   if (!Number.isNaN(date.getTime())) return date;
+
   return null;
 };
 
@@ -85,6 +99,7 @@ const getLogDate = (log) =>
   parseAnyDate(log?.updatedAt);
 
 const getMetricDate = (metric) =>
+  parseAnyDate(metric?.date) ||
   parseAnyDate(metric?.updatedAt) ||
   parseAnyDate(metric?.createdAt) ||
   parseAnyDate(metric?.logDate);
@@ -207,6 +222,7 @@ const ProgressTracker = () => {
   const [routines, setRoutines] = useState([]);
   const [logs, setLogs] = useState([]);
   const [metricsHistory, setMetricsHistory] = useState([]);
+  const [weightLogs, setWeightLogs] = useState([]);
 
   const [calendarRange, setCalendarRange] = useState(
     makeRangeState(defaultStart, currentMonth)
@@ -230,33 +246,35 @@ const ProgressTracker = () => {
         setRoutines([]);
         setLogs([]);
         setMetricsHistory([]);
+        setWeightLogs([]);
         return;
       }
 
       try {
-        const [routinesData, logsData, metricsData] = await Promise.all([
+        const [routinesData, logsData, metricsData, bodyWeightLogsData] = await Promise.all([
           getRoutines(currentUser.uid),
           getWorkoutLogs(currentUser.uid),
           getBodyMetrics(currentUser.uid),
+          getBodyMetricLogs(currentUser.uid),
         ]);
 
         setRoutines(Array.isArray(routinesData) ? routinesData : []);
         setLogs(Array.isArray(logsData) ? logsData : []);
         setMetricsHistory(Array.isArray(metricsData) ? metricsData : []);
+        setWeightLogs(Array.isArray(bodyWeightLogsData) ? bodyWeightLogsData : []);
       } catch (error) {
         console.error("Progress tracker load error:", error);
         setRoutines([]);
         setLogs([]);
         setMetricsHistory([]);
+        setWeightLogs([]);
       }
     };
 
     loadProgressData();
   }, [currentUser]);
 
-  const latestMetric = metricsHistory.length
-    ? metricsHistory[metricsHistory.length - 1]
-    : null;
+  const latestMetric = metricsHistory.length ? metricsHistory[0] : null;
 
   const latestBMI = useMemo(() => {
     const heightCm = parseFloat(latestMetric?.height);
@@ -278,15 +296,7 @@ const ProgressTracker = () => {
     [routines]
   );
 
-  const totalWorkoutMinutes = useMemo(
-    () =>
-      logs.reduce((sum, log) => {
-        const mins = parseInt(log.minutes || 0, 10) || 0;
-        const secs = parseInt(log.seconds || 0, 10) || 0;
-        return sum + mins + secs / 60;
-      }, 0),
-    [logs]
-  );
+  const workoutDayCount = useMemo(() => logs.length, [logs]);
 
   const filteredLogsForCalendar = useMemo(
     () => filterByRange(logs, getLogDate, calendarRange),
@@ -303,9 +313,9 @@ const ProgressTracker = () => {
     [logs, strengthRange]
   );
 
-  const filteredMetricsForWeight = useMemo(
-    () => filterByRange(metricsHistory, getMetricDate, weightRange),
-    [metricsHistory, weightRange]
+  const filteredWeightLogs = useMemo(
+    () => filterByRange(weightLogs, getMetricDate, weightRange),
+    [weightLogs, weightRange]
   );
 
   const filteredRoutinesForBreakdown = useMemo(
@@ -314,18 +324,25 @@ const ProgressTracker = () => {
   );
 
   const weightTrendData = useMemo(() => {
-    return filteredMetricsForWeight
+    const source = filteredWeightLogs.length > 0 ? filteredWeightLogs : [];
+
+    return [...source]
+      .reverse()
       .map((entry, index) => ({
         index: index + 1,
+        label: entry.date || `Entry ${index + 1}`,
         weight: Number(entry.weight) || 0,
       }))
       .filter((item) => item.weight > 0);
-  }, [filteredMetricsForWeight]);
+  }, [filteredWeightLogs]);
 
   const categoryDistributionData = useMemo(() => {
     const counts = filteredLogsForCategory.reduce((acc, log) => {
-      const category = log.category || "Other";
-      acc[category] = (acc[category] || 0) + 1;
+      const routineFocus =
+        log.routineSnapshot?.focus ||
+        log.routineTitle ||
+        "Other";
+      acc[routineFocus] = (acc[routineFocus] || 0) + 1;
       return acc;
     }, {});
 
@@ -340,20 +357,32 @@ const ProgressTracker = () => {
   }, [filteredRoutinesForBreakdown]);
 
   const strengthProgressData = useMemo(() => {
-    const maxByExercise = filteredLogsForStrength.reduce((acc, log) => {
-      const exerciseName = log.exercise?.name || log.exercise || "Unknown";
-      const numericWeight = Number(log.weight) || 0;
-      const weightUnit = log.weightUnit || "";
+    const maxByExercise = {};
 
-      if (!acc[exerciseName] || numericWeight > acc[exerciseName].maxWeight) {
-        acc[exerciseName] = {
-          name: exerciseName,
-          maxWeight: numericWeight,
-          unit: weightUnit,
-        };
-      }
-      return acc;
-    }, {});
+    filteredLogsForStrength.forEach((log) => {
+      const exercises = Array.isArray(log.exercisePerformance)
+        ? log.exercisePerformance
+        : [];
+
+      exercises.forEach((exercise) => {
+        const exerciseName = exercise?.exerciseName || "Unknown";
+        const numericWeight = Number(exercise?.weight) || 0;
+        const weightUnit = exercise?.weightUnit || "";
+
+        if (numericWeight <= 0) return;
+
+        if (
+          !maxByExercise[exerciseName] ||
+          numericWeight > maxByExercise[exerciseName].maxWeight
+        ) {
+          maxByExercise[exerciseName] = {
+            name: exerciseName,
+            maxWeight: numericWeight,
+            unit: weightUnit,
+          };
+        }
+      });
+    });
 
     return Object.values(maxByExercise)
       .sort((a, b) => b.maxWeight - a.maxWeight)
@@ -377,47 +406,27 @@ const ProgressTracker = () => {
     return months;
   }, [calendarRange]);
 
-  const workoutMinutesByDate = useMemo(() => {
+  const workoutLoggedByDate = useMemo(() => {
     const map = {};
 
     filteredLogsForCalendar.forEach((log) => {
       const date = getLogDate(log);
       if (!date) return;
       const key = date.toISOString().slice(0, 10);
-      const mins = parseInt(log.minutes || 0, 10) || 0;
-      const secs = parseInt(log.seconds || 0, 10) || 0;
-      const total = mins + secs / 60;
-      map[key] = (map[key] || 0) + total;
+      map[key] = true;
     });
 
     return map;
   }, [filteredLogsForCalendar]);
 
-  const getCalendarCellStyles = (minutes) => {
-    if (!minutes) {
+  const getCalendarCellStyles = (workedOut) => {
+    if (!workedOut) {
       return {
         background: "rgba(255,255,255,0.45)",
         color: "rgba(0,0,0,0.45)",
       };
     }
-    if (minutes < 15) {
-      return {
-        background: "rgba(183,199,230,0.9)",
-        color: "#111",
-      };
-    }
-    if (minutes < 30) {
-      return {
-        background: "rgba(143,170,220,0.95)",
-        color: "#111",
-      };
-    }
-    if (minutes < 45) {
-      return {
-        background: "rgba(108,140,213,0.96)",
-        color: "#fff",
-      };
-    }
+
     return {
       background: "rgba(48,102,190,0.98)",
       color: "#fff",
@@ -425,7 +434,10 @@ const ProgressTracker = () => {
   };
 
   const hasAnyData =
-    routines.length > 0 || logs.length > 0 || metricsHistory.length > 0;
+    routines.length > 0 ||
+    logs.length > 0 ||
+    metricsHistory.length > 0 ||
+    weightLogs.length > 0;
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -503,13 +515,13 @@ const ProgressTracker = () => {
         <Box sx={infoCardSx}>
           <Stack direction="row" spacing={1.2} alignItems="center" mb={1}>
             <TrendingUpRoundedIcon />
-            <Typography sx={{ fontWeight: 700 }}>Workout Minutes</Typography>
+            <Typography sx={{ fontWeight: 700 }}>Workout Days</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {Math.round(totalWorkoutMinutes)}
+            {workoutDayCount}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
-            Total logged minutes
+            Logged workout sessions
           </Typography>
         </Box>
       </Stack>
@@ -529,18 +541,18 @@ const ProgressTracker = () => {
           </Typography>
 
           <Typography sx={{ color: "rgba(0,0,0,0.7)" }}>
-            Add body metrics, workout logs, and routines to unlock your charts here.
+            Add body metrics, weight logs, workout logs, and routines to unlock your charts here.
           </Typography>
         </Box>
       ) : (
         <Stack spacing={3}>
           <Box sx={panelSx}>
             <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 1 }}>
-              Consistency Calendar + Workout Duration
+              Consistency Calendar
             </Typography>
 
             <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>
-              Each calendar date shows the total workout minutes logged on that day.
+              A blue date means the user logged a workout on that day.
             </Typography>
 
             <RangeSelector
@@ -587,15 +599,13 @@ const ProgressTracker = () => {
                   const dateKey = new Date(year, month, day)
                     .toISOString()
                     .slice(0, 10);
-                  const minutes = workoutMinutesByDate[dateKey] || 0;
-                  const styles = getCalendarCellStyles(minutes);
+                  const workedOut = Boolean(workoutLoggedByDate[dateKey]);
+                  const styles = getCalendarCellStyles(workedOut);
 
                   cells.push(
                     <Box
                       key={dateKey}
-                      title={`${getDateLabel(new Date(dateKey))}: ${Math.round(
-                        minutes
-                      )} min`}
+                      title={`${getDateLabel(new Date(dateKey))}${workedOut ? ": workout logged" : ""}`}
                       sx={{
                         width: 34,
                         height: 34,
@@ -773,12 +783,12 @@ const ProgressTracker = () => {
                   <ResponsiveContainer>
                     <LineChart data={weightTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="index" tickFormatter={() => ""}>
-                        <Label value="Entries" position="insideBottom" offset={-2} />
+                      <XAxis dataKey="label">
+                        <Label value="Month / Date" position="insideBottom" offset={-2} />
                       </XAxis>
                       <YAxis>
                         <Label
-                          value="Weight"
+                          value="Weight (kg)"
                           angle={-90}
                           position="insideLeft"
                           style={{ textAnchor: "middle" }}
