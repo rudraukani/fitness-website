@@ -1,10 +1,11 @@
 import {
   collection,
-  doc,
   addDoc,
   updateDoc,
   deleteDoc,
   getDocs,
+  getDoc,
+  doc,
   query,
   orderBy,
   serverTimestamp,
@@ -17,12 +18,14 @@ export const addRoutine = async (uid, routineData) => {
   const payload = {
     title: routineData.title || "",
     level: routineData.level || "",
-    duration: routineData.duration || "",
-    frequency: routineData.frequency || "",
+    durationValue: routineData.durationValue || "",
+    durationUnit: routineData.durationUnit || "",
+    frequencyValue: routineData.frequencyValue || "",
+    frequencyUnit: routineData.frequencyUnit || "",
     focus: routineData.focus || "",
-    description: routineData.description || "",
+    notes: routineData.notes || "",
     exercises: Array.isArray(routineData.exercises) ? routineData.exercises : [],
-    saved: Boolean(routineData.saved),
+    saved: routineData.saved !== false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -34,10 +37,12 @@ export const addRoutine = async (uid, routineData) => {
 export const updateRoutine = async (uid, routineId, routineData) => {
   const routineRef = doc(db, "users", uid, "routines", routineId);
 
-  await updateDoc(routineRef, {
+  const payload = {
     ...routineData,
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  await updateDoc(routineRef, payload);
 };
 
 export const deleteRoutine = async (uid, routineId) => {
@@ -58,5 +63,22 @@ export const getRoutines = async (uid) => {
   } catch (error) {
     console.error("Get routines error:", error);
     return [];
+  }
+};
+
+export const getSingleRoutine = async (uid, routineId) => {
+  try {
+    const routineRef = doc(db, "users", uid, "routines", routineId);
+    const snap = await getDoc(routineRef);
+
+    if (!snap.exists()) return null;
+
+    return {
+      id: snap.id,
+      ...snap.data(),
+    };
+  } catch (error) {
+    console.error("Get single routine error:", error);
+    return null;
   }
 };

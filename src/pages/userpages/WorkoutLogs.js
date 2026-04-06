@@ -10,7 +10,6 @@ import {
   Divider,
 } from "@mui/material";
 import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
@@ -62,6 +61,19 @@ const exerciseCardSx = {
   border: "1px solid rgba(255,255,255,0.18)",
 };
 
+const capitalizeWords = (value = "") =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const normalizeRoutine = (routine) => ({
+  ...routine,
+  saved: routine.saved !== false,
+  exercises: Array.isArray(routine.exercises) ? routine.exercises : [],
+});
+
 const WorkoutLogs = () => {
   const { currentUser } = useAuth();
   const [logs, setLogs] = useState([]);
@@ -71,33 +83,47 @@ const WorkoutLogs = () => {
   const [exercisePerformance, setExercisePerformance] = useState({});
   const [formError, setFormError] = useState("");
 
+  const loadLogs = async () => {
+    if (!currentUser) {
+      setLogs([]);
+      return;
+    }
+
+    try {
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
+      setLogs(firestoreLogs || []);
+    } catch (error) {
+      console.error("Load workout logs error:", error);
+      setLogs([]);
+    }
+  };
+
+  const loadRoutines = async () => {
+    if (!currentUser) {
+      setRoutines([]);
+      return;
+    }
+
+    try {
+      const firestoreRoutines = await getRoutines(currentUser.uid);
+      const normalizedRoutines = (firestoreRoutines || []).map(normalizeRoutine);
+      setRoutines(normalizedRoutines);
+    } catch (error) {
+      console.error("Load routines error inside WorkoutLogs:", error);
+      setRoutines([]);
+    }
+  };
+
+  const loadData = async () => {
+    await loadLogs();
+    await loadRoutines();
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      if (!currentUser) {
-        setLogs([]);
-        setRoutines([]);
-        return;
-      }
-
-      try {
-        const [firestoreLogs, firestoreRoutines] = await Promise.all([
-          getWorkoutLogs(),
-          getRoutines(currentUser.uid),
-        ]);
-
-        setLogs(firestoreLogs);
-        setRoutines(firestoreRoutines);
-      } catch (error) {
-        console.error("Load workout data error:", error);
-        setLogs([]);
-        setRoutines([]);
-      }
-    };
-
     loadData();
   }, [currentUser]);
 
-  const latestLog = logs[0];
+  const latestLog = logs[0] || null;
 
   const latestDurationLabel = useMemo(() => {
     if (!latestLog?.routineSnapshot?.duration) return "-";
@@ -105,7 +131,7 @@ const WorkoutLogs = () => {
   }, [latestLog]);
 
   const latestRoutineLabel = useMemo(() => {
-    return latestLog?.routineTitle || "-";
+    return latestLog?.routineTitle || latestLog?.routineSnapshot?.title || "-";
   }, [latestLog]);
 
   const handleInputChange = (field, value) => {
@@ -144,18 +170,12 @@ const WorkoutLogs = () => {
     level: routine?.level || "",
     duration:
       routine?.duration ||
-      [
-        routine?.durationValue || "",
-        routine?.durationUnit || "",
-      ]
+      [routine?.durationValue || "", routine?.durationUnit || ""]
         .filter(Boolean)
         .join(" "),
     frequency:
       routine?.frequency ||
-      [
-        routine?.frequencyValue || "",
-        routine?.frequencyUnit || "",
-      ]
+      [routine?.frequencyValue || "", routine?.frequencyUnit || ""]
         .filter(Boolean)
         .join(" "),
     focus: routine?.focus || "",
@@ -220,10 +240,9 @@ const WorkoutLogs = () => {
         })),
       };
 
-      await addWorkoutLog(payload);
+      await addWorkoutLog(currentUser.uid, payload);
 
-      const firestoreLogs = await getWorkoutLogs();
-      setLogs(firestoreLogs);
+      await loadLogs();
       setFormData(emptyLogForm);
       setSelectedRoutine(null);
       setExercisePerformance({});
@@ -238,9 +257,8 @@ const WorkoutLogs = () => {
     if (!currentUser) return;
 
     try {
-      await deleteWorkoutLog(logId);
-      getWorkoutLogs();
-      setLogs(firestoreLogs);
+      await deleteWorkoutLog(currentUser.uid, logId);
+      await loadLogs();
     } catch (error) {
       console.error("Delete workout log error:", error);
     }
@@ -268,8 +286,8 @@ const WorkoutLogs = () => {
             maxWidth: "760px",
           }}
         >
-          Track each workout session by selecting a routine, reviewing the saved
-          exercises, and logging any weight used where equipment is required.
+          Track each workout session by selecting one of your routines,
+          reviewing the saved exercises, and logging any weight used where needed.
         </Typography>
       </Box>
 
@@ -336,8 +354,8 @@ const WorkoutLogs = () => {
         </Typography>
 
         <Typography sx={{ color: "rgba(0,0,0,0.7)", mb: 3 }}>
-          Select the date and routine below. Saved exercises will appear
-          automatically.
+          Select the date and one of your routines below. The exercises from that
+          routine will appear automatically.
         </Typography>
 
         <Stack spacing={2.2}>
@@ -359,11 +377,17 @@ const WorkoutLogs = () => {
             onChange={(e) => handleInputChange("routineId", e.target.value)}
             sx={inputSx}
           >
-            {routines.map((routine) => (
-              <MenuItem key={routine.id} value={routine.id}>
-                {routine.title}
+            {routines.length === 0 ? (
+              <MenuItem value="" disabled>
+                No routines found
               </MenuItem>
-            ))}
+            ) : (
+              routines.map((routine) => (
+                <MenuItem key={routine.id} value={routine.id}>
+                  {routine.title}
+                </MenuItem>
+              ))
+            )}
           </TextField>
 
           {selectedRoutine && (
@@ -383,7 +407,7 @@ const WorkoutLogs = () => {
                 sx={{ mb: 2 }}
               >
                 {!!selectedRoutine.level && (
-                  <Chip label={`Level: ${selectedRoutine.level}`} />
+                  <Chip label={`Level: ${capitalizeWords(selectedRoutine.level)}`} />
                 )}
                 {!!buildRoutineSnapshot(selectedRoutine).duration && (
                   <Chip
@@ -396,7 +420,7 @@ const WorkoutLogs = () => {
                   />
                 )}
                 {!!selectedRoutine.focus && (
-                  <Chip label={`Focus: ${selectedRoutine.focus}`} />
+                  <Chip label={`Focus: ${capitalizeWords(selectedRoutine.focus)}`} />
                 )}
               </Stack>
 
@@ -412,9 +436,7 @@ const WorkoutLogs = () => {
                     <Box key={`${exercise.name}-${index}`} sx={exerciseCardSx}>
                       <Stack spacing={1.5}>
                         <Box>
-                          <Typography
-                            sx={{ fontSize: "1.05rem", fontWeight: 800 }}
-                          >
+                          <Typography sx={{ fontSize: "1.05rem", fontWeight: 800 }}>
                             {exercise.name || `Exercise ${index + 1}`}
                           </Typography>
 
@@ -465,22 +487,18 @@ const WorkoutLogs = () => {
                                 }
                                 sx={inputSx}
                               >
-                                {Array.from({ length: 401 }, (_, i) => i).map(
-                                  (value) => (
-                                    <MenuItem key={value} value={value}>
-                                      {value}
-                                    </MenuItem>
-                                  )
-                                )}
+                                {Array.from({ length: 401 }, (_, i) => i).map((value) => (
+                                  <MenuItem key={value} value={value}>
+                                    {value}
+                                  </MenuItem>
+                                ))}
                               </TextField>
 
                               <TextField
                                 select
                                 label="Weight Unit"
                                 fullWidth
-                                value={
-                                  exercisePerformance[index]?.weightUnit || "kg"
-                                }
+                                value={exercisePerformance[index]?.weightUnit || "kg"}
                                 onChange={(e) =>
                                   handleExercisePerformanceChange(
                                     index,
@@ -582,7 +600,7 @@ const WorkoutLogs = () => {
 
                     {!!log.routineSnapshot?.focus && (
                       <Chip
-                        label={log.routineSnapshot.focus}
+                        label={capitalizeWords(log.routineSnapshot.focus)}
                         sx={{
                           fontWeight: 700,
                           background: "rgba(17,17,17,0.08)",
@@ -610,7 +628,9 @@ const WorkoutLogs = () => {
                     sx={{ mb: 2 }}
                   >
                     {!!log.routineSnapshot?.level && (
-                      <Chip label={`Level: ${log.routineSnapshot.level}`} />
+                      <Chip
+                        label={`Level: ${capitalizeWords(log.routineSnapshot.level)}`}
+                      />
                     )}
                     {!!log.routineSnapshot?.duration && (
                       <Chip label={`Duration: ${log.routineSnapshot.duration}`} />
@@ -619,9 +639,7 @@ const WorkoutLogs = () => {
                       <Chip label={`Frequency: ${log.routineSnapshot.frequency}`} />
                     )}
                     <Chip
-                      label={`Exercises: ${
-                        log.routineSnapshot?.exercises?.length || 0
-                      }`}
+                      label={`Exercises: ${log.routineSnapshot?.exercises?.length || 0}`}
                     />
                   </Stack>
 
