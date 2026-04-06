@@ -57,6 +57,7 @@ const monthOptions = (() => {
   const options = [];
   const startYear = 2024;
   const endYear = 2027;
+
   for (let year = startYear; year <= endYear; year += 1) {
     for (let month = 1; month <= 12; month += 1) {
       const value = `${year}-${String(month).padStart(2, "0")}`;
@@ -67,6 +68,7 @@ const monthOptions = (() => {
       options.push({ value, label });
     }
   }
+
   return options;
 })();
 
@@ -108,6 +110,66 @@ const getMonthLabel = (date) =>
 const getDateLabel = (date) =>
   date.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 
+const makeRangeState = (defaultStart, defaultEnd) => ({
+  start: defaultStart,
+  end: defaultEnd,
+});
+
+const filterByRange = (items, getDateFn, range) => {
+  const start = getMonthStartDate(range.start);
+  const end = getMonthEndDate(range.end);
+  if (!start || !end) return items;
+
+  return items.filter((item) => {
+    const date = getDateFn(item);
+    return date && date >= start && date <= end;
+  });
+};
+
+const RangeSelector = ({ title, range, onChange }) => (
+  <Stack
+    direction={{ xs: "column", md: "row" }}
+    spacing={2}
+    useFlexGap
+    flexWrap="wrap"
+    sx={{ mb: 2.5 }}
+  >
+    <Typography sx={{ fontWeight: 800, minWidth: "180px", pt: { md: 1.2 } }}>
+      {title}
+    </Typography>
+
+    <TextField
+      select
+      label="Start Month"
+      value={range.start}
+      onChange={(e) => onChange({ ...range, start: e.target.value })}
+      sx={{ ...inputSx, minWidth: "220px" }}
+      size="small"
+    >
+      {monthOptions.map((option) => (
+        <MenuItem key={option.value} value={option.value}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </TextField>
+
+    <TextField
+      select
+      label="End Month"
+      value={range.end}
+      onChange={(e) => onChange({ ...range, end: e.target.value })}
+      sx={{ ...inputSx, minWidth: "220px" }}
+      size="small"
+    >
+      {monthOptions.map((option) => (
+        <MenuItem key={option.value} value={option.value}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </TextField>
+  </Stack>
+);
+
 const valueOnlyTooltip = ({ active, payload }) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -145,8 +207,25 @@ const ProgressTracker = () => {
   const [routines, setRoutines] = useState([]);
   const [logs, setLogs] = useState([]);
   const [metricsHistory, setMetricsHistory] = useState([]);
-  const [startMonth, setStartMonth] = useState(defaultStart);
-  const [endMonth, setEndMonth] = useState(currentMonth);
+
+  const [calendarRange, setCalendarRange] = useState(
+    makeRangeState(defaultStart, currentMonth)
+  );
+  const [categoryRange, setCategoryRange] = useState(
+    makeRangeState(defaultStart, currentMonth)
+  );
+  const [strengthRange, setStrengthRange] = useState(
+    makeRangeState(defaultStart, currentMonth)
+  );
+  const [weightRange, setWeightRange] = useState(
+    makeRangeState(defaultStart, currentMonth)
+  );
+  const [bmiRange, setBmiRange] = useState(
+    makeRangeState(defaultStart, currentMonth)
+  );
+  const [routineRange, setRoutineRange] = useState(
+    makeRangeState(defaultStart, currentMonth)
+  );
 
   useEffect(() => {
     const loadProgressData = async () => {
@@ -178,36 +257,8 @@ const ProgressTracker = () => {
     loadProgressData();
   }, [currentUser]);
 
-  const rangeStart = useMemo(() => getMonthStartDate(startMonth), [startMonth]);
-  const rangeEnd = useMemo(() => getMonthEndDate(endMonth), [endMonth]);
-
-  const filteredLogs = useMemo(() => {
-    if (!rangeStart || !rangeEnd) return logs;
-    return logs.filter((log) => {
-      const date = getLogDate(log);
-      return date && date >= rangeStart && date <= rangeEnd;
-    });
-  }, [logs, rangeStart, rangeEnd]);
-
-  const filteredMetrics = useMemo(() => {
-    if (!rangeStart || !rangeEnd) return metricsHistory;
-    return metricsHistory.filter((metric) => {
-      const date = getMetricDate(metric);
-      return date && date >= rangeStart && date <= rangeEnd;
-    });
-  }, [metricsHistory, rangeStart, rangeEnd]);
-
-  const filteredRoutines = useMemo(() => {
-    if (!rangeStart || !rangeEnd) return routines;
-    return routines.filter((routine) => {
-      const date = getRoutineDate(routine);
-      if (!date) return true;
-      return date >= rangeStart && date <= rangeEnd;
-    });
-  }, [routines, rangeStart, rangeEnd]);
-
-  const latestMetric = filteredMetrics.length
-    ? filteredMetrics[filteredMetrics.length - 1]
+  const latestMetric = metricsHistory.length
+    ? metricsHistory[metricsHistory.length - 1]
     : null;
 
   const latestBMI = useMemo(() => {
@@ -222,35 +273,65 @@ const ProgressTracker = () => {
 
   const totalExercisesAcrossRoutines = useMemo(
     () =>
-      filteredRoutines.reduce(
+      routines.reduce(
         (sum, routine) =>
           sum + (Array.isArray(routine.exercises) ? routine.exercises.length : 0),
         0
       ),
-    [filteredRoutines]
+    [routines]
   );
 
   const totalWorkoutMinutes = useMemo(
     () =>
-      filteredLogs.reduce((sum, log) => {
+      logs.reduce((sum, log) => {
         const mins = parseInt(log.minutes || 0, 10) || 0;
         const secs = parseInt(log.seconds || 0, 10) || 0;
         return sum + mins + secs / 60;
       }, 0),
-    [filteredLogs]
+    [logs]
+  );
+
+  const filteredLogsForCalendar = useMemo(
+    () => filterByRange(logs, getLogDate, calendarRange),
+    [logs, calendarRange]
+  );
+
+  const filteredLogsForCategory = useMemo(
+    () => filterByRange(logs, getLogDate, categoryRange),
+    [logs, categoryRange]
+  );
+
+  const filteredLogsForStrength = useMemo(
+    () => filterByRange(logs, getLogDate, strengthRange),
+    [logs, strengthRange]
+  );
+
+  const filteredMetricsForWeight = useMemo(
+    () => filterByRange(metricsHistory, getMetricDate, weightRange),
+    [metricsHistory, weightRange]
+  );
+
+  const filteredMetricsForBMI = useMemo(
+    () => filterByRange(metricsHistory, getMetricDate, bmiRange),
+    [metricsHistory, bmiRange]
+  );
+
+  const filteredRoutinesForBreakdown = useMemo(
+    () => filterByRange(routines, getRoutineDate, routineRange),
+    [routines, routineRange]
   );
 
   const weightTrendData = useMemo(() => {
-    return filteredMetrics
+    return filteredMetricsForWeight
       .map((entry, index) => ({
         index: index + 1,
         weight: Number(entry.weight) || 0,
       }))
       .filter((item) => item.weight > 0);
-  }, [filteredMetrics]);
+  }, [filteredMetricsForWeight]);
 
   const bmiTrendData = useMemo(() => {
-    return filteredMetrics
+    return filteredMetricsForBMI
       .map((entry, index) => {
         const heightCm = parseFloat(entry.height);
         const weightKg = parseFloat(entry.weight);
@@ -266,27 +347,27 @@ const ProgressTracker = () => {
         };
       })
       .filter((item) => item.bmi > 0);
-  }, [filteredMetrics]);
+  }, [filteredMetricsForBMI]);
 
   const categoryDistributionData = useMemo(() => {
-    const counts = filteredLogs.reduce((acc, log) => {
+    const counts = filteredLogsForCategory.reduce((acc, log) => {
       const category = log.category || "Other";
       acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {});
 
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredLogs]);
+  }, [filteredLogsForCategory]);
 
   const routineExerciseData = useMemo(() => {
-    return filteredRoutines.slice(0, 6).map((routine, index) => ({
+    return filteredRoutinesForBreakdown.slice(0, 6).map((routine, index) => ({
       name: routine.title || `Routine ${index + 1}`,
       exercises: Array.isArray(routine.exercises) ? routine.exercises.length : 0,
     }));
-  }, [filteredRoutines]);
+  }, [filteredRoutinesForBreakdown]);
 
   const strengthProgressData = useMemo(() => {
-    const maxByExercise = filteredLogs.reduce((acc, log) => {
+    const maxByExercise = filteredLogsForStrength.reduce((acc, log) => {
       const exerciseName = log.exercise?.name || log.exercise || "Unknown";
       const numericWeight = Number(log.weight) || 0;
       const weightUnit = log.weightUnit || "";
@@ -304,14 +385,16 @@ const ProgressTracker = () => {
     return Object.values(maxByExercise)
       .sort((a, b) => b.maxWeight - a.maxWeight)
       .slice(0, 8);
-  }, [filteredLogs]);
+  }, [filteredLogsForStrength]);
 
   const calendarMonths = useMemo(() => {
-    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) return [];
+    const start = getMonthStartDate(calendarRange.start);
+    const end = getMonthEndDate(calendarRange.end);
+    if (!start || !end || start > end) return [];
 
     const months = [];
-    const cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
-    const last = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const last = new Date(end.getFullYear(), end.getMonth(), 1);
 
     while (cursor <= last) {
       months.push(new Date(cursor));
@@ -319,12 +402,12 @@ const ProgressTracker = () => {
     }
 
     return months;
-  }, [rangeStart, rangeEnd]);
+  }, [calendarRange]);
 
   const workoutMinutesByDate = useMemo(() => {
     const map = {};
 
-    filteredLogs.forEach((log) => {
+    filteredLogsForCalendar.forEach((log) => {
       const date = getLogDate(log);
       if (!date) return;
       const key = date.toISOString().slice(0, 10);
@@ -335,7 +418,7 @@ const ProgressTracker = () => {
     });
 
     return map;
-  }, [filteredLogs]);
+  }, [filteredLogsForCalendar]);
 
   const getCalendarCellStyles = (minutes) => {
     if (!minutes) {
@@ -369,9 +452,7 @@ const ProgressTracker = () => {
   };
 
   const hasAnyData =
-    filteredRoutines.length > 0 ||
-    filteredLogs.length > 0 ||
-    filteredMetrics.length > 0;
+    routines.length > 0 || logs.length > 0 || metricsHistory.length > 0;
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -396,50 +477,8 @@ const ProgressTracker = () => {
           }}
         >
           Track your workout patterns, body changes, consistency, and strength
-          progress with a more detailed visual dashboard.
+          progress with separate time filters for each visualization.
         </Typography>
-      </Box>
-
-      {/* Time Selection */}
-      <Box sx={{ ...panelSx, mb: 4 }}>
-        <Typography sx={{ fontSize: "1.2rem", fontWeight: 800, mb: 2 }}>
-          Time Range Selection
-        </Typography>
-
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          useFlexGap
-          flexWrap="wrap"
-        >
-          <TextField
-            select
-            label="Start Month"
-            value={startMonth}
-            onChange={(e) => setStartMonth(e.target.value)}
-            sx={{ ...inputSx, minWidth: "240px" }}
-          >
-            {monthOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            select
-            label="End Month"
-            value={endMonth}
-            onChange={(e) => setEndMonth(e.target.value)}
-            sx={{ ...inputSx, minWidth: "240px" }}
-          >
-            {monthOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
       </Box>
 
       <Stack
@@ -455,7 +494,7 @@ const ProgressTracker = () => {
             <Typography sx={{ fontWeight: 700 }}>Total Routines</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {filteredRoutines.length}
+            {routines.length}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Active custom plans
@@ -468,7 +507,7 @@ const ProgressTracker = () => {
             <Typography sx={{ fontWeight: 700 }}>Workout Logs</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {filteredLogs.length}
+            {logs.length}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Logged workout entries
@@ -522,7 +561,6 @@ const ProgressTracker = () => {
         </Box>
       ) : (
         <Stack spacing={3}>
-          {/* Consistency Calendar */}
           <Box sx={panelSx}>
             <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 1 }}>
               Consistency Calendar + Workout Duration
@@ -532,7 +570,28 @@ const ProgressTracker = () => {
               Each calendar date shows the total workout minutes logged on that day.
             </Typography>
 
-            <Stack spacing={3}>
+            <RangeSelector
+              title="Calendar Range"
+              range={calendarRange}
+              onChange={setCalendarRange}
+            />
+
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                overflowX: "auto",
+                pb: 1,
+                scrollBehavior: "smooth",
+                "&::-webkit-scrollbar": {
+                  height: 8,
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: "rgba(17,17,17,0.18)",
+                  borderRadius: "999px",
+                },
+              }}
+            >
               {calendarMonths.map((monthDate) => {
                 const year = monthDate.getFullYear();
                 const month = monthDate.getMonth();
@@ -546,7 +605,7 @@ const ProgressTracker = () => {
                   cells.push(
                     <Box
                       key={`empty-${year}-${month}-${i}`}
-                      sx={{ width: 44, height: 44 }}
+                      sx={{ width: 34, height: 34 }}
                     />
                   );
                 }
@@ -565,28 +624,34 @@ const ProgressTracker = () => {
                         minutes
                       )} min`}
                       sx={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: "10px",
+                        width: 34,
+                        height: 34,
+                        borderRadius: "8px",
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "0.72rem",
+                        fontSize: "0.68rem",
                         fontWeight: 700,
                         ...styles,
                       }}
                     >
-                      <Box sx={{ lineHeight: 1 }}>{day}</Box>
-                      <Box sx={{ lineHeight: 1, fontSize: "0.63rem" }}>
-                        {minutes ? Math.round(minutes) : "-"}
-                      </Box>
+                      {day}
                     </Box>
                   );
                 }
 
                 return (
-                  <Box key={`${year}-${month}`}>
+                  <Box
+                    key={`${year}-${month}`}
+                    sx={{
+                      minWidth: "310px",
+                      flexShrink: 0,
+                      p: 2,
+                      borderRadius: "18px",
+                      background: "rgba(255,255,255,0.52)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                    }}
+                  >
                     <Typography sx={{ fontWeight: 800, mb: 1.5 }}>
                       {getMonthLabel(monthDate)}
                     </Typography>
@@ -594,34 +659,32 @@ const ProgressTracker = () => {
                     <Box
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(7, 44px)",
-                        gap: 1,
+                        gridTemplateColumns: "repeat(7, 34px)",
+                        gap: 0.75,
                         justifyContent: "flex-start",
                       }}
                     >
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                        (dayName) => (
-                          <Box
-                            key={`${year}-${month}-${dayName}`}
-                            sx={{
-                              width: 44,
-                              textAlign: "center",
-                              fontSize: "0.72rem",
-                              fontWeight: 800,
-                              color: "rgba(0,0,0,0.7)",
-                              mb: 0.5,
-                            }}
-                          >
-                            {dayName}
-                          </Box>
-                        )
-                      )}
+                      {["S", "M", "T", "W", "T", "F", "S"].map((dayName, index) => (
+                        <Box
+                          key={`${year}-${month}-${dayName}-${index}`}
+                          sx={{
+                            width: 34,
+                            textAlign: "center",
+                            fontSize: "0.65rem",
+                            fontWeight: 800,
+                            color: "rgba(0,0,0,0.65)",
+                            mb: 0.25,
+                          }}
+                        >
+                          {dayName}
+                        </Box>
+                      ))}
                       {cells}
                     </Box>
                   </Box>
                 );
               })}
-            </Stack>
+            </Box>
           </Box>
 
           <Stack
@@ -634,6 +697,12 @@ const ProgressTracker = () => {
               <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
                 Workout Category Split
               </Typography>
+
+              <RangeSelector
+                title="Category Range"
+                range={categoryRange}
+                onChange={setCategoryRange}
+              />
 
               {categoryDistributionData.length > 0 ? (
                 <Box sx={{ width: "100%", height: 320 }}>
@@ -653,9 +722,7 @@ const ProgressTracker = () => {
                           />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value, name) => [value, name]}
-                      />
+                      <Tooltip formatter={(value, name) => [value, name]} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -671,6 +738,12 @@ const ProgressTracker = () => {
               <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
                 Strength Progress
               </Typography>
+
+              <RangeSelector
+                title="Strength Range"
+                range={strengthRange}
+                onChange={setStrengthRange}
+              />
 
               {strengthProgressData.length > 0 ? (
                 <Box sx={{ width: "100%", height: 320 }}>
@@ -716,15 +789,18 @@ const ProgressTracker = () => {
                 Weight Trend
               </Typography>
 
+              <RangeSelector
+                title="Weight Range"
+                range={weightRange}
+                onChange={setWeightRange}
+              />
+
               {weightTrendData.length > 0 ? (
                 <Box sx={{ width: "100%", height: 320 }}>
                   <ResponsiveContainer>
                     <LineChart data={weightTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="index"
-                        tickFormatter={() => ""}
-                      >
+                      <XAxis dataKey="index" tickFormatter={() => ""}>
                         <Label value="Entries" position="insideBottom" offset={-2} />
                       </XAxis>
                       <YAxis>
@@ -758,15 +834,18 @@ const ProgressTracker = () => {
                 BMI Trend
               </Typography>
 
+              <RangeSelector
+                title="BMI Range"
+                range={bmiRange}
+                onChange={setBmiRange}
+              />
+
               {bmiTrendData.length > 0 ? (
                 <Box sx={{ width: "100%", height: 320 }}>
                   <ResponsiveContainer>
                     <LineChart data={bmiTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="index"
-                        tickFormatter={() => ""}
-                      >
+                      <XAxis dataKey="index" tickFormatter={() => ""}>
                         <Label value="Entries" position="insideBottom" offset={-2} />
                       </XAxis>
                       <YAxis>
@@ -806,6 +885,12 @@ const ProgressTracker = () => {
               <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
                 Routine Exercise Breakdown
               </Typography>
+
+              <RangeSelector
+                title="Routine Range"
+                range={routineRange}
+                onChange={setRoutineRange}
+              />
 
               {routineExerciseData.length > 0 ? (
                 <Box sx={{ width: "100%", height: 320 }}>
@@ -857,7 +942,7 @@ const ProgressTracker = () => {
 
               <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
                 This shows the total number of exercises you have added across all
-                your saved routines in the selected time range.
+                your saved routines.
               </Typography>
             </Box>
           </Stack>
