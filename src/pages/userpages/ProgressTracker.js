@@ -220,9 +220,6 @@ const ProgressTracker = () => {
   const [weightRange, setWeightRange] = useState(
     makeRangeState(defaultStart, currentMonth)
   );
-  const [bmiRange, setBmiRange] = useState(
-    makeRangeState(defaultStart, currentMonth)
-  );
   const [routineRange, setRoutineRange] = useState(
     makeRangeState(defaultStart, currentMonth)
   );
@@ -311,11 +308,6 @@ const ProgressTracker = () => {
     [metricsHistory, weightRange]
   );
 
-  const filteredMetricsForBMI = useMemo(
-    () => filterByRange(metricsHistory, getMetricDate, bmiRange),
-    [metricsHistory, bmiRange]
-  );
-
   const filteredRoutinesForBreakdown = useMemo(
     () => filterByRange(routines, getRoutineDate, routineRange),
     [routines, routineRange]
@@ -329,25 +321,6 @@ const ProgressTracker = () => {
       }))
       .filter((item) => item.weight > 0);
   }, [filteredMetricsForWeight]);
-
-  const bmiTrendData = useMemo(() => {
-    return filteredMetricsForBMI
-      .map((entry, index) => {
-        const heightCm = parseFloat(entry.height);
-        const weightKg = parseFloat(entry.weight);
-
-        if (!heightCm || !weightKg || heightCm <= 0 || weightKg <= 0) {
-          return { index: index + 1, bmi: 0 };
-        }
-
-        const heightMeters = heightCm / 100;
-        return {
-          index: index + 1,
-          bmi: Number((weightKg / (heightMeters * heightMeters)).toFixed(2)),
-        };
-      })
-      .filter((item) => item.bmi > 0);
-  }, [filteredMetricsForBMI]);
 
   const categoryDistributionData = useMemo(() => {
     const counts = filteredLogsForCategory.reduce((acc, log) => {
@@ -831,58 +804,6 @@ const ProgressTracker = () => {
 
             <Box sx={{ ...panelSx, flex: 1, minWidth: "320px" }}>
               <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
-                BMI Trend
-              </Typography>
-
-              <RangeSelector
-                title="BMI Range"
-                range={bmiRange}
-                onChange={setBmiRange}
-              />
-
-              {bmiTrendData.length > 0 ? (
-                <Box sx={{ width: "100%", height: 320 }}>
-                  <ResponsiveContainer>
-                    <LineChart data={bmiTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="index" tickFormatter={() => ""}>
-                        <Label value="Entries" position="insideBottom" offset={-2} />
-                      </XAxis>
-                      <YAxis>
-                        <Label
-                          value="BMI"
-                          angle={-90}
-                          position="insideLeft"
-                          style={{ textAnchor: "middle" }}
-                        />
-                      </YAxis>
-                      <Tooltip content={valueOnlyTooltip} />
-                      <Line
-                        type="monotone"
-                        dataKey="bmi"
-                        name="BMI"
-                        strokeWidth={3}
-                        dot={{ r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              ) : (
-                <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
-                  No BMI history available.
-                </Typography>
-              )}
-            </Box>
-          </Stack>
-
-          <Stack
-            direction={{ xs: "column", xl: "row" }}
-            spacing={3}
-            useFlexGap
-            flexWrap="wrap"
-          >
-            <Box sx={{ ...panelSx, flex: 1, minWidth: "320px" }}>
-              <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
                 Routine Exercise Breakdown
               </Typography>
 
@@ -923,29 +844,29 @@ const ProgressTracker = () => {
                 </Typography>
               )}
             </Box>
-
-            <Box sx={{ ...panelSx, flex: 1, minWidth: "320px" }}>
-              <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
-                Total Exercises Across Routines
-              </Typography>
-
-              <Typography
-                sx={{
-                  fontSize: "3rem",
-                  fontWeight: 800,
-                  color: "#111",
-                  mb: 1,
-                }}
-              >
-                {totalExercisesAcrossRoutines}
-              </Typography>
-
-              <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
-                This shows the total number of exercises you have added across all
-                your saved routines.
-              </Typography>
-            </Box>
           </Stack>
+
+          <Box sx={panelSx}>
+            <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, mb: 2 }}>
+              Total Exercises Across Routines
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: "3rem",
+                fontWeight: 800,
+                color: "#111",
+                mb: 1,
+              }}
+            >
+              {totalExercisesAcrossRoutines}
+            </Typography>
+
+            <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
+              This shows the total number of exercises you have added across all
+              your saved routines.
+            </Typography>
+          </Box>
         </Stack>
       )}
     </Box>
