@@ -304,7 +304,6 @@ const Routines = () => {
       await addRoutine(currentUser.uid, {
         ...trimmedRoutine,
         exercises: routineExercises,
-        saved: false,
       });
 
       await loadRoutinesFromFirestore();

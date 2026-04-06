@@ -6,12 +6,16 @@ import {
   orderBy,
   doc,
   deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-const collectionRef = collection(db, "workoutLogs");
+const getWorkoutLogsCollection = (userId) =>
+  collection(db, "users", userId, "workoutLogs");
 
-export const addWorkoutLog = async (log) => {
+export const addWorkoutLog = async (userId, log) => {
+  const collectionRef = getWorkoutLogsCollection(userId);
+
   await addDoc(collectionRef, {
     logDate: log.logDate || "",
     routineId: log.routineId || "",
@@ -39,21 +43,22 @@ export const addWorkoutLog = async (log) => {
           weightUnit: exercise.weightUnit || "",
         }))
       : [],
-    createdAt: new Date(),
+    createdAt: serverTimestamp(),
   });
 };
 
-export const getWorkoutLogs = async () => {
+export const getWorkoutLogs = async (userId) => {
+  const collectionRef = getWorkoutLogsCollection(userId);
   const q = query(collectionRef, orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
   }));
 };
 
-export const deleteWorkoutLog = async (logId) => {
-  const logRef = doc(db, "workoutLogs", logId);
+export const deleteWorkoutLog = async (userId, logId) => {
+  const logRef = doc(db, "users", userId, "workoutLogs", logId);
   await deleteDoc(logRef);
 };

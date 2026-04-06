@@ -81,7 +81,7 @@ const WorkoutLogs = () => {
 
       try {
         const [firestoreLogs, firestoreRoutines] = await Promise.all([
-          getWorkoutLogs(),
+          getWorkoutLogs(currentUser.uid),
           getRoutines(currentUser.uid),
         ]);
 
@@ -220,9 +220,9 @@ const WorkoutLogs = () => {
         })),
       };
 
-      await addWorkoutLog(payload);
+      await addWorkoutLog(currentUser.uid, payload);
 
-      const firestoreLogs = await getWorkoutLogs();
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);  
       setLogs(firestoreLogs);
       setFormData(emptyLogForm);
       setSelectedRoutine(null);
@@ -238,8 +238,8 @@ const WorkoutLogs = () => {
     if (!currentUser) return;
 
     try {
-      await deleteWorkoutLog(logId);
-      getWorkoutLogs();
+      await deleteWorkoutLog(currentUser.uid, logId);
+      const firestoreLogs = await getWorkoutLogs(currentUser.uid);
       setLogs(firestoreLogs);
     } catch (error) {
       console.error("Delete workout log error:", error);
