@@ -147,7 +147,7 @@ const ExerciseDetail = () => {
     if (!exerciseDetail) return;
 
     if (!currentUser) {
-      navigate('/account');
+      alert('Please sign in to save exercises!');
       return;
     }
 
@@ -210,14 +210,26 @@ const ExerciseDetail = () => {
           {error || 'Could not load this exercise.'}
         </Alert>
 
-        <Button component={Link} to="/explore" variant="contained"
-          sx={{ 
-            color: colors.main, 
-            backgroundColor: colors.bkg, 
-          }}
-        >
-          Back to Explore
-        </Button>
+        <Button
+              component={Link}
+              to="/explore"
+              startIcon={<ArrowBackIcon />}
+              sx={{ 
+                maxWidth: 'fit-content',
+                px: 2,
+                py: 1,
+                mb: 4, 
+                fontFamily: '"IBM Plex Sans", sans-serif',
+                color: colors.main, 
+                '&:hover': {
+                    background: colors.highlight,
+                  },
+                backgroundColor: colors.bkg, 
+                borderRadius: '15px',
+              }}
+            >
+              Explore
+            </Button>
       </Box>
     );
   }
@@ -252,6 +264,9 @@ const ExerciseDetail = () => {
                 mb: 4, 
                 fontFamily: '"IBM Plex Sans", sans-serif',
                 color: colors.main, 
+                '&:hover': {
+                    background: colors.highlight,
+                  },
                 backgroundColor: colors.bkg, 
                 borderRadius: '15px',
               }}

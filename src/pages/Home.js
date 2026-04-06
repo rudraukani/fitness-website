@@ -40,25 +40,29 @@ const Home = () => {
         <div className="blank-div2"/>
         <div className="features-div">
 
+
           <div className="general-descrip-div">
             <p className="hook">YOUR FITNESS JOURNEY SHOULD BE EXCITING, NOT INTIMIDATING.</p>
             <p className="hook">WE MAKE EXERCISES EASY TO FIND, UNDERSTAND & FOLLOW.</p>
             <p className="hook">EVERYONE DESERVES TO FEEL CONFIDENT IN THE GYM!</p>
           </div>
 
-          <div className="descip-div">
+          <div className="blank-div2"/>
+
+          <div className="info-columns">
+          <div className="descip-div1">
             <div className="subtitle"><p>EXPLORE OUR EXERCISE LIBRARY!</p></div>
             <div className="descrip">
               <ul>
                 <li>Quickly find exercises by name</li>
                 <li>Discover new exercises</li>
-                <li>Filter exercises by muscle targets</li>
+                <li>Filter exercises by category</li>
                 <li>Access detailed exercise info, including form guidance</li>
               </ul>
             </div>
           </div>
 
-          <div className="descip-div">
+          <div className="descip-div2">
             <div className="subtitle"><p>CREATE A FREE ACCOUNT!</p></div>
             <div className="descrip">
               <ul>
@@ -69,7 +73,8 @@ const Home = () => {
               </ul>
             </div>
           </div>
-
+          </div>
+          <div className="blank-div2"/>
         </div>
       </div>
     </div>
