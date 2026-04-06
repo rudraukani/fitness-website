@@ -26,6 +26,7 @@ import {
 
 const levelOptions = ["beginner", "intermediate", "expert"];
 const durationUnitOptions = ["days", "weeks", "months"];
+const frequencyUnitOptions = ["per Day", "per Week", "per Month"];
 const focusOptions = ["strength", "muscle gain", "fat loss"];
 const routineCountOptions = Array.from({ length: 60 }, (_, index) => String(index + 1));
 const exerciseCountOptions = Array.from({ length: 50 }, (_, index) => String(index + 1));
@@ -316,7 +317,7 @@ const Routines = () => {
       setViewingRoutineId(null);
     } catch (error) {
       console.error("Create routine error:", error);
-      setFormError("Failed to save routine.");
+      setFormError(`Failed to save routine:  ${error.message}`);
     }
   };
 
@@ -512,7 +513,8 @@ const Routines = () => {
       console.error("Add exercise to existing routine error:", error);
     }
   };
-
+  
+  console.log("currentUser.uid:", currentUser?.uid);
   return (
     <Box sx={{ width: "100%" }}>
       <Stack
@@ -732,7 +734,7 @@ const Routines = () => {
                   sx={inputSx}
                 >
                   <MenuItem value="">None</MenuItem>
-                  {durationUnitOptions.map((option) => (
+                  {frequencyUnitOptions.map((option) => (
                     <MenuItem key={option} value={option}>
                       {capitalizeWords(option)}
                     </MenuItem>

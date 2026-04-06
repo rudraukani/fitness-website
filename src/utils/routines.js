@@ -1,62 +1,76 @@
+import { db } from "../firebase";
+import { getDoc } from "firebase/firestore";
+
 import {
   collection,
-  doc,
   addDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
-  getDocs,
+  doc,
+  serverTimestamp,
   query,
   orderBy,
-  serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase";
 
-export const addRoutine = async (uid, routineData) => {
-  const routinesRef = collection(db, "users", uid, "routines");
+const getRoutinesCollection = (userId) =>
+  collection(db, "users", userId, "routines");
+
+export const addRoutine = async (userId, routineData) => {
+  const routinesCollection = getRoutinesCollection(userId);
 
   const payload = {
     title: routineData.title || "",
     level: routineData.level || "",
-    duration: routineData.duration || "",
-    frequency: routineData.frequency || "",
+    durationValue: routineData.durationValue || "",
+    durationUnit: routineData.durationUnit || "",
+    frequencyValue: routineData.frequencyValue || "",
+    frequencyUnit: routineData.frequencyUnit || "",
     focus: routineData.focus || "",
-    description: routineData.description || "",
+    notes: routineData.notes || "",
     exercises: Array.isArray(routineData.exercises) ? routineData.exercises : [],
     saved: Boolean(routineData.saved),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
 
-  const docRef = await addDoc(routinesRef, payload);
-  return docRef.id;
+  console.log("Saving routine for uid:", userId);
+  console.log("Payload:", payload);
+
+  const docRef = await addDoc(routinesCollection, payload);
+  console.log("Routine saved with id:", docRef.id);
+  console.log("Routine saved at path:", docRef.path);
+  const snap = await getDoc(docRef);
+  console.log("exists after save:", snap.exists());
+  console.log("data after save:", snap.data());
+
+  return { id: docRef.id, ...payload };
 };
 
-export const updateRoutine = async (uid, routineId, routineData) => {
-  const routineRef = doc(db, "users", uid, "routines", routineId);
+export const getRoutines = async (userId) => {
+  const routinesCollection = getRoutinesCollection(userId);
+  const q = query(routinesCollection, orderBy("createdAt", "desc"));
+  const querySnapshot = await getDocs(q);
+
+  return querySnapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }));
+};
+
+export const updateRoutine = async (userId, routineId, routineData) => {
+  const routineRef = doc(db, "users", userId, "routines", routineId);
 
   await updateDoc(routineRef, {
     ...routineData,
     updatedAt: serverTimestamp(),
   });
+
+  return routineId;
 };
 
-export const deleteRoutine = async (uid, routineId) => {
-  const routineRef = doc(db, "users", uid, "routines", routineId);
+export const deleteRoutine = async (userId, routineId) => {
+  const routineRef = doc(db, "users", userId, "routines", routineId);
   await deleteDoc(routineRef);
-};
-
-export const getRoutines = async (uid) => {
-  try {
-    const routinesRef = collection(db, "users", uid, "routines");
-    const q = query(routinesRef, orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-
-    return snap.docs.map((docItem) => ({
-      id: docItem.id,
-      ...docItem.data(),
-    }));
-  } catch (error) {
-    console.error("Get routines error:", error);
-    return [];
-  }
+  return routineId;
 };
