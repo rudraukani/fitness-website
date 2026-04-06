@@ -110,6 +110,22 @@ export const addBodyMetric = async (userId, metricData) => {
   });
 };
 
+export const addBodyMetricLog = async (userId, logData) => {
+  const ref = collection(db, "users", userId, "bodyMetricLogs");
+
+  const normalizedWeight = convertWeightToKg(
+    logData.weight,
+    logData.weightUnit || "kg"
+  );
+
+  await addDoc(ref, {
+    weight: normalizedWeight,
+    weightUnit: "kg",
+    date: logData.date || "",
+    createdAt: serverTimestamp(),
+  });
+};
+
 export const getBodyMetrics = async (userId) => {
   const ref = collection(db, "users", userId, "bodyMetrics");
   const q = query(ref, orderBy("createdAt", "desc"));
@@ -123,5 +139,21 @@ export const getBodyMetrics = async (userId) => {
 
 export const deleteBodyMetric = async (userId, metricId) => {
   const ref = doc(db, "users", userId, "bodyMetrics", metricId);
+  await deleteDoc(ref);
+};
+
+export const getBodyMetricLogs = async (userId) => {
+  const ref = collection(db, "users", userId, "bodyMetricLogs");
+  const q = query(ref, orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...docItem.data(),
+  }));
+};
+
+export const deleteBodyMetricLog = async (userId, logId) => {
+  const ref = doc(db, "users", userId, "bodyMetricLogs", logId);
   await deleteDoc(ref);
 };

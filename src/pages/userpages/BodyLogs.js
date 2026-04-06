@@ -13,14 +13,14 @@ import {
   IconButton,
 } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import AccessibilityNewRoundedIcon from "@mui/icons-material/AccessibilityNewRounded";
 import MonitorWeightRoundedIcon from "@mui/icons-material/MonitorWeightRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import WaterDropRoundedIcon from "@mui/icons-material/WaterDropRounded";
 import { useAuth } from "../../context/AuthContext";
-import { addBodyMetric, getBodyMetrics } from "../../utils/bodyMetrics";
-
+import { addBodyMetric, addBodyMetricLog, getBodyMetrics, getBodyMetricLogs, deleteBodyMetricLog, } from "../../utils/bodyMetrics";
 
 const infoCardSx = {
   flex: 1,
@@ -59,6 +59,14 @@ const accordionSx = {
   },
 };
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const formatMetricValue = (value, unit = "") => {
   if (value === null || value === undefined || value === "") return "-";
   return unit ? `${value} ${unit}` : value;
@@ -67,6 +75,19 @@ const formatMetricValue = (value, unit = "") => {
 const formatValueForInput = (value, fallback = "") => {
   if (value === null || value === undefined || value === "") return fallback;
   return String(value);
+};
+
+const formatDisplayDate = (dateString) => {
+  if (!dateString) return "-";
+
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateString;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 };
 
 const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
@@ -92,6 +113,7 @@ const emptyGoalsForm = {
 const emptyLogForm = {
   weight: "",
   weightUnit: "kg",
+  date: getTodayDateString(),
 };
 
 const BodyLogs = () => {
@@ -100,11 +122,12 @@ const BodyLogs = () => {
   const [goalsForm, setGoalsForm] = useState(emptyGoalsForm);
   const [logForm, setLogForm] = useState(emptyLogForm);
   const [savedMetrics, setSavedMetrics] = useState(null);
-  const [expandedPanel, setExpandedPanel] = useState("initial-metrics");
+  const [expandedPanel, setExpandedPanel] = useState(false);
   const [isInitialEditing, setIsInitialEditing] = useState(true);
   const [isGoalsEditing, setIsGoalsEditing] = useState(true);
   const [formError, setFormError] = useState("");
-
+  const [logs, setLogs] = useState([]); 
+  
   const calculatedBMI = useMemo(() => {
     const height = parseFloat(initialMetricsForm.height);
     const weight = parseFloat(initialMetricsForm.weight);
@@ -148,20 +171,41 @@ const BodyLogs = () => {
     return bmi.toFixed(2);
   }, [savedMetrics]);
 
+  const latestWeightData = useMemo(() => {
+    const metric = savedMetrics;
+    const log = logs[0];
+
+    if (!metric && !log) return null;
+
+    const metricTime = metric?.createdAt?.seconds || 0;
+    const logTime = log?.createdAt?.seconds || 0;
+
+    return logTime > metricTime
+      ? { value: log.weight, unit: log.weightUnit || "kg" }
+      : { value: metric.weight, unit: metric.weightUnit || "kg" };
+  }, [savedMetrics, logs]);
+
   useEffect(() => {
     const loadMetrics = async () => {
       if (!currentUser) {
         setSavedMetrics(null);
         setInitialMetricsForm(emptyInitialMetricsForm);
         setGoalsForm(emptyGoalsForm);
-        setLogForm(emptyLogForm);
+        setLogForm({
+          ...emptyLogForm,
+          date: getTodayDateString(),
+        });
         return;
       }
 
       try {
         const metrics = await getBodyMetrics(currentUser.uid);
+        const logsData = await getBodyMetricLogs(currentUser.uid);
+
         const latestMetric = metrics[0] || null;
+
         setSavedMetrics(latestMetric);
+        setLogs(logsData);
 
         if (latestMetric) {
           setInitialMetricsForm({
@@ -189,6 +233,7 @@ const BodyLogs = () => {
           setLogForm((prev) => ({
             ...prev,
             weightUnit: latestMetric.weightUnit || "kg",
+            date: prev.date || getTodayDateString(),
           }));
 
           setIsInitialEditing(false);
@@ -315,6 +360,11 @@ const BodyLogs = () => {
       return;
     }
 
+    if (!logForm.date) {
+      setFormError("Date is required.");
+      return;
+    }
+
     if (!currentUser) {
       setFormError("Please log in to save.");
       return;
@@ -346,7 +396,11 @@ const BodyLogs = () => {
     };
 
     try {
-      await addBodyMetric(currentUser.uid, payload);
+      await addBodyMetricLog(currentUser.uid, {
+        weight: logForm.weight,
+        weightUnit: logForm.weightUnit,
+        date: logForm.date,
+      });
       const metrics = await getBodyMetrics(currentUser.uid);
       const latestMetric = metrics[0] || null;
 
@@ -379,6 +433,7 @@ const BodyLogs = () => {
       setLogForm((prev) => ({
         ...prev,
         weight: "",
+        date: getTodayDateString(),
       }));
 
       setFormError("");
@@ -387,6 +442,23 @@ const BodyLogs = () => {
       setFormError("Failed to save log.");
     }
   };
+
+    const handleDeleteLog = async (logId) => {
+      if (!currentUser) {
+        setFormError("Please log in to delete.");
+        return;
+      }
+
+      try {
+        await deleteBodyMetricLog(currentUser.uid, logId);
+        const logsData = await getBodyMetricLogs(currentUser.uid);
+        setLogs(logsData);
+        setFormError("");
+      } catch (error) {
+        console.error("Failed to delete log:", error);
+        setFormError("Failed to delete log.");
+      }
+    };
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -443,8 +515,8 @@ const BodyLogs = () => {
             <Typography sx={{ fontWeight: 700 }}>Weight</Typography>
           </Stack>
           <Typography sx={{ fontSize: "1.9rem", fontWeight: 800 }}>
-            {savedMetrics?.weight
-              ? `${savedMetrics.weight} ${savedMetrics.weightUnit || "kg"}`
+            {latestWeightData
+              ? `${latestWeightData.value} ${latestWeightData.unit}`
               : "-"}
           </Typography>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
@@ -481,7 +553,7 @@ const BodyLogs = () => {
         </Box>
       </Stack>
 
-            <Box sx={{ ...panelSx, mb: 4 }}>
+      <Box sx={{ ...panelSx, mb: 4 }}>
         <Accordion
           expanded={expandedPanel === "initial-metrics"}
           onChange={handlePanelChange("initial-metrics")}
@@ -808,22 +880,12 @@ const BodyLogs = () => {
             >
               <Box>
                 <Typography sx={{ fontSize: "1.35rem", fontWeight: 800 }}>
-                  Log
+                  Weight Log
                 </Typography>
                 <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
                   Log your weight for progress tracking. 
                 </Typography>
               </Box>
-
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Chip
-                  label={`Weight: ${formatMetricValue(
-                    logForm.weight,
-                    logForm.weightUnit
-                  )}`}
-                  size="small"
-                />
-              </Stack>
 
 
             </Stack>
@@ -862,6 +924,17 @@ const BodyLogs = () => {
                   ))}
                 </TextField>
               </Stack>
+              
+              <TextField
+                label="Date"
+                type="date"
+                fullWidth
+                required
+                value={logForm.date}
+                onChange={(e) => handleLogChange("date", e.target.value)}
+                sx={inputSx}
+                InputLabelProps={{ shrink: true }}
+              />
 
               {formError && (
                 <Typography sx={{ color: "#b42318", fontWeight: 600 }}>
@@ -889,6 +962,94 @@ const BodyLogs = () => {
               >
                 Submit Log
               </Button>
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+      </Box>
+      
+      <Box sx={{ ...panelSx, mb: 4 }}>
+        <Accordion
+          expanded={expandedPanel === "past-weight-logs"}
+          onChange={handlePanelChange("past-weight-logs")}
+          sx={accordionSx}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={1}
+              sx={{ width: "100%" }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: "1.35rem", fontWeight: 800 }}>
+                  Past Weight Logs
+                </Typography>
+                <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
+                  View and manage your previously recorded weight entries.
+                </Typography>
+              </Box>
+
+              <Chip
+                label={`${logs.length} ${logs.length === 1 ? "log" : "logs"}`}
+                size="small"
+              />
+            </Stack>
+          </AccordionSummary>
+
+          <AccordionDetails>
+            <Stack spacing={1.5}>
+              {logs.length === 0 ? (
+                <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
+                  No past weight logs yet.
+                </Typography>
+              ) : (
+                logs.map((log) => (
+                  <Box
+                    key={log.id}
+                    sx={{
+                      background: "rgba(255,255,255,0.55)",
+                      border: "1px solid rgba(255,255,255,0.22)",
+                      borderRadius: "18px",
+                      px: 2,
+                      py: 1.6,
+                      backdropFilter: "blur(10px)",
+                    }}
+                  >
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      alignItems={{ xs: "flex-start", sm: "center" }}
+                      spacing={1.5}
+                    >
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={{ xs: 0.8, md: 2 }}
+                        useFlexGap
+                        flexWrap="wrap"
+                      >
+                        <Typography sx={{ fontWeight: 700 }}>
+                          {formatDisplayDate(log.date)}
+                        </Typography>
+
+                        <Typography sx={{ fontWeight: 500 }}>
+                          {`${log.weight ?? "-"} ${log.weightUnit || "kg"}`}
+                        </Typography>
+                      </Stack>
+
+                      <IconButton
+                        onClick={() => handleDeleteLog(log.id)}
+                        sx={{
+                          background: "rgba(17,17,17,0.06)",
+                          borderRadius: "12px",
+                        }}
+                      >
+                        <DeleteOutlineRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  </Box>
+                ))
+              )}
             </Stack>
           </AccordionDetails>
         </Accordion>

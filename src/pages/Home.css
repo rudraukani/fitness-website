@@ -159,7 +159,7 @@ h3 {
     line-height: 2em;
     font-size: 1.1em;
     padding: 1.5em;
-    background-color: var(--pink);
+    background-color: var(--bkg);
     border-radius: 25px;
 }
 
@@ -182,14 +182,7 @@ h3 {
     padding-top: 1.5em;
     padding-bottom: 1.5em;
     border-radius: 25px;
-}
-
-.descip-div1 {
-    background-color: var(--green);
-}
-
-.descip-div2 {
-    background-color: var(--yellow);
+    background-color: var(--bkg);
 }
 
 .subtitle {
