@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Box, Chip, Stack, Typography } from "@mui/material";
 import FitnessCenterRoundedIcon from "@mui/icons-material/FitnessCenterRounded";
 import MonitorHeartRoundedIcon from "@mui/icons-material/MonitorHeartRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import DirectionsRunRoundedIcon from "@mui/icons-material/DirectionsRunRounded";
 import WaterDropRoundedIcon from "@mui/icons-material/WaterDropRounded";
-import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import { useAuth } from "../../context/AuthContext";
 import { getRoutines } from "../../utils/routines";
 import { getWorkoutLogs } from "../../utils/workoutLogs";
@@ -30,6 +29,13 @@ const panelSx = {
   backdropFilter: "blur(10px)",
   boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
 };
+
+const capitalizeWords = (value = "") =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
 const AccountOverview = () => {
   const { currentUser } = useAuth();
@@ -87,15 +93,58 @@ const AccountOverview = () => {
     return (weightKg / (heightMeters * heightMeters)).toFixed(2);
   }, [metrics]);
 
-  const dailyGoalStatus = useMemo(() => {
-    if (!metrics) return "Not Set";
-    if (routines.length > 0 || logs.length > 0) return "On Track";
-    return "Getting Started";
-  }, [metrics, routines.length, logs.length]);
+  const latestWorkoutSummary = useMemo(() => {
+    if (!latestLog) return null;
+
+    const exercises = Array.isArray(latestLog.exercisePerformance)
+      ? latestLog.exercisePerformance
+      : [];
+
+    const firstExercise = exercises[0] || null;
+
+    const totalSets = exercises.reduce(
+      (sum, exercise) => sum + (parseInt(exercise?.sets || 0, 10) || 0),
+      0
+    );
+
+    const totalReps = exercises.reduce(
+      (sum, exercise) => sum + (parseInt(exercise?.reps || 0, 10) || 0),
+      0
+    );
+
+    const weightEntries = exercises.filter(
+      (exercise) => Number(exercise?.weight || 0) > 0
+    );
+
+    const maxWeightExercise =
+      weightEntries.length > 0
+        ? weightEntries.reduce((max, current) =>
+            Number(current.weight || 0) > Number(max.weight || 0) ? current : max
+          )
+        : null;
+
+    return {
+      logDate: latestLog.logDate || "-",
+      routineTitle:
+        latestLog.routineTitle || latestLog.routineSnapshot?.title || "-",
+      focus: latestLog.routineSnapshot?.focus || "",
+      level: latestLog.routineSnapshot?.level || "",
+      duration: latestLog.routineSnapshot?.duration || "-",
+      frequency: latestLog.routineSnapshot?.frequency || "-",
+      exercisesCount: exercises.length,
+      firstExerciseName: firstExercise?.exerciseName || "-",
+      firstExerciseEquipment: firstExercise?.equipment || "None",
+      totalSets,
+      totalReps,
+      maxWeight:
+        maxWeightExercise && Number(maxWeightExercise.weight || 0) > 0
+          ? `${maxWeightExercise.weight} ${maxWeightExercise.weightUnit || ""}`.trim()
+          : "-",
+    };
+  }, [latestLog]);
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography
           sx={{
@@ -119,6 +168,7 @@ const AccountOverview = () => {
           A quick snapshot of your fitness journey, body goals, routines,
           and recent workout activity.
         </Typography>
+
         <Typography
           sx={{
             mt: 1,
@@ -127,11 +177,10 @@ const AccountOverview = () => {
             maxWidth: "760px",
           }}
         >
-          Click on the tabs to the left for detailed info. 
+          Click on the tabs to the left for detailed info.
         </Typography>
       </Box>
 
-      {/* Summary Cards */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -177,12 +226,9 @@ const AccountOverview = () => {
             Based on saved body metrics
           </Typography>
         </Box>
-
       </Stack>
 
-      {/* Main Panels */}
       <Stack spacing={3}>
-        {/* Fitness Goal Summary */}
         <Box sx={panelSx}>
           <Typography sx={{ fontSize: "1.45rem", fontWeight: 800, mb: 2 }}>
             Fitness Goal Summary
@@ -231,7 +277,6 @@ const AccountOverview = () => {
           </Typography>
         </Box>
 
-        {/* Body Metrics + Daily Targets */}
         <Stack
           direction={{ xs: "column", lg: "row" }}
           spacing={3}
@@ -307,7 +352,6 @@ const AccountOverview = () => {
           </Box>
         </Stack>
 
-        {/* Recent Workout + Routine Preview */}
         <Stack
           direction={{ xs: "column", lg: "row" }}
           spacing={3}
@@ -319,7 +363,7 @@ const AccountOverview = () => {
               Latest Workout Log
             </Typography>
 
-            {latestLog ? (
+            {latestWorkoutSummary ? (
               <>
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
@@ -328,29 +372,39 @@ const AccountOverview = () => {
                   flexWrap="wrap"
                   sx={{ mb: 2 }}
                 >
-                  <Chip
-                    label={`Exercise: ${
-                      latestLog.exercise?.name || latestLog.exercise || "-"
-                    }`}
-                  />
-                  <Chip label={`Category: ${latestLog.category || "-"}`} />
-                  <Chip label={`Sets: ${latestLog.sets || "-"}`} />
-                  <Chip label={`Reps: ${latestLog.reps || "-"}`} />
-                  <Chip
-                    label={`Weight: ${latestLog.weight || "-"} ${
-                      latestLog.weightUnit || ""
-                    }`}
-                  />
-                  <Chip
-                    label={`Time: ${latestLog.minutes || 0}m ${
-                      latestLog.seconds || 0
-                    }s`}
-                  />
+                  <Chip label={`Date: ${latestWorkoutSummary.logDate}`} />
+                  <Chip label={`Routine: ${latestWorkoutSummary.routineTitle}`} />
+                  <Chip label={`Exercises Logged: ${latestWorkoutSummary.exercisesCount}`} />
+                  {latestWorkoutSummary.level && (
+                    <Chip label={`Level: ${capitalizeWords(latestWorkoutSummary.level)}`} />
+                  )}
+                  {latestWorkoutSummary.duration !== "-" && (
+                    <Chip label={`Duration: ${latestWorkoutSummary.duration}`} />
+                  )}
+                </Stack>
+
+                <Stack spacing={1.2} sx={{ mb: 2 }}>
+                  <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
+                    <strong>First Exercise:</strong> {latestWorkoutSummary.firstExerciseName}
+                  </Typography>
+                  <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
+                    <strong>Equipment:</strong> {latestWorkoutSummary.firstExerciseEquipment}
+                  </Typography>
+                  <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
+                    <strong>Total Sets:</strong> {latestWorkoutSummary.totalSets}
+                  </Typography>
+                  <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
+                    <strong>Total Reps:</strong> {latestWorkoutSummary.totalReps}
+                  </Typography>
+                  <Typography sx={{ color: "rgba(0,0,0,0.78)" }}>
+                    <strong>Heaviest Logged Weight:</strong> {latestWorkoutSummary.maxWeight}
+                  </Typography>
                 </Stack>
 
                 <Typography sx={{ color: "rgba(0,0,0,0.72)", lineHeight: 1.8 }}>
-                  Your latest logged workout is now shown here so you can quickly
-                  review your most recent activity and training volume.
+                  Your latest workout entry now reflects the real data saved from
+                  the workout logs page, including the selected routine and logged
+                  exercise performance.
                 </Typography>
               </>
             ) : (
@@ -396,7 +450,6 @@ const AccountOverview = () => {
           </Box>
         </Stack>
 
-        {/* Progress Motivation Panel */}
         <Box sx={panelSx}>
           <Typography sx={{ fontSize: "1.45rem", fontWeight: 800, mb: 2 }}>
             Progress Insight
