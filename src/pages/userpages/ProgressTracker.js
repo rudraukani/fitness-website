@@ -223,6 +223,7 @@ const ProgressTracker = () => {
   const [logs, setLogs] = useState([]);
   const [metricsHistory, setMetricsHistory] = useState([]);
   const [weightLogs, setWeightLogs] = useState([]);
+  const [selectedExercise, setSelectedExercise] = useState("all");
 
   const [calendarRange, setCalendarRange] = useState(
     makeRangeState(defaultStart, currentMonth)
@@ -357,37 +358,70 @@ const ProgressTracker = () => {
   }, [filteredRoutinesForBreakdown]);
 
   const strengthProgressData = useMemo(() => {
-    const maxByExercise = {};
+  const dataMap = {};
+  const allExercises = new Set();
 
-    filteredLogsForStrength.forEach((log) => {
-      const exercises = Array.isArray(log.exercisePerformance)
-        ? log.exercisePerformance
-        : [];
+  filteredLogsForStrength.forEach((log) => {
+    const date = getLogDate(log);
+    if (!date) return;
 
-      exercises.forEach((exercise) => {
-        const exerciseName = exercise?.exerciseName || "Unknown";
-        const numericWeight = Number(exercise?.weight) || 0;
-        const weightUnit = exercise?.weightUnit || "";
+    const dateLabel = date.toISOString().slice(0, 10);
 
-        if (numericWeight <= 0) return;
+    if (!dataMap[dateLabel]) {
+      dataMap[dateLabel] = { date: dateLabel };
+    }
 
-        if (
-          !maxByExercise[exerciseName] ||
-          numericWeight > maxByExercise[exerciseName].maxWeight
-        ) {
-          maxByExercise[exerciseName] = {
-            name: exerciseName,
-            maxWeight: numericWeight,
-            unit: weightUnit,
-          };
-        }
-      });
+    const exercises = Array.isArray(log.exercisePerformance)
+      ? log.exercisePerformance
+      : [];
+
+    exercises.forEach((exercise) => {
+  // ❗ ONLY KEEP exercises with equipment
+  if (!exercise?.equipment || exercise.equipment === "none") return;
+
+  const name = (exercise?.exerciseName || "Unknown")
+    .toLowerCase()
+    .trim();
+
+  let weight = Number(exercise?.weight);
+  if (isNaN(weight)) return;
+
+  if (exercise?.weightUnit === "lbs") {
+    weight = weight * 0.453592;
+  }
+
+  dataMap[dateLabel][name] = weight;
+  allExercises.add(name);
+});
+  });
+
+  // 🔥 IMPORTANT: fill missing values with null
+  const finalData = Object.values(dataMap).map((entry) => {
+    allExercises.forEach((exercise) => {
+      if (!(exercise in entry)) {
+        entry[exercise] = null;
+      }
     });
+    return entry;
+  });
 
-    return Object.values(maxByExercise)
-      .sort((a, b) => b.maxWeight - a.maxWeight)
-      .slice(0, 8);
-  }, [filteredLogsForStrength]);
+  console.log("FINAL DATA:", finalData);
+
+  return finalData.sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
+}, [filteredLogsForStrength]);
+const exerciseOptions = useMemo(() => {
+  const set = new Set();
+
+  strengthProgressData.forEach((item) => {
+    Object.keys(item).forEach((key) => {
+      if (key !== "date") set.add(key);
+    });
+  });
+
+  return ["all", ...Array.from(set)];
+}, [strengthProgressData]);
 
   const calendarMonths = useMemo(() => {
     const start = getMonthStartDate(calendarRange.start);
@@ -727,31 +761,64 @@ const ProgressTracker = () => {
                 range={strengthRange}
                 onChange={setStrengthRange}
               />
+              <TextField
+  select
+  label="Exercise"
+  value={selectedExercise}
+  onChange={(e) => setSelectedExercise(e.target.value)}
+  sx={{ ...inputSx, minWidth: "220px", mb: 2 }}
+  size="small"
+>
+  {exerciseOptions.map((option) => (
+    <MenuItem key={option} value={option}>
+      {option === "all" ? "All Exercises" : option}
+    </MenuItem>
+  ))}
+</TextField>
 
               {strengthProgressData.length > 0 ? (
                 <Box sx={{ width: "100%", height: 320 }}>
-                  <ResponsiveContainer>
-                    <BarChart data={strengthProgressData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name">
-                        <Label value="Exercises" position="insideBottom" offset={-2} />
-                      </XAxis>
-                      <YAxis>
-                        <Label
-                          value="Max Weight"
-                          angle={-90}
-                          position="insideLeft"
-                          style={{ textAnchor: "middle" }}
-                        />
-                      </YAxis>
-                      <Tooltip content={valueOnlyTooltip} />
-                      <Bar
-                        dataKey="maxWeight"
-                        name="Max Weight"
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                 <ResponsiveContainer>
+  <LineChart
+  data={strengthProgressData}
+  margin={{ top: 10, right: 30, left: 70, bottom: 10 }}
+>
+    <CartesianGrid strokeDasharray="3 3" />
+
+    <XAxis dataKey="date" />
+
+    <YAxis />
+
+    <Tooltip />
+    <Legend />
+    
+
+   
+    {(() => {
+      const allKeys =
+        strengthProgressData.length > 0
+          ? Object.keys(strengthProgressData[0]).filter(
+              (key) => key !== "date"
+            )
+          : [];
+
+      const filteredKeys =
+        selectedExercise === "all"
+          ? allKeys
+          : allKeys.filter((key) => key === selectedExercise);
+
+      return filteredKeys.map((exercise) => (
+        <Line
+          key={exercise}
+          type="monotone"
+          dataKey={exercise}
+          strokeWidth={3}
+          dot={{ r: 4 }}
+        />
+      ));
+    })()}
+  </LineChart>
+</ResponsiveContainer>
                 </Box>
               ) : (
                 <Typography sx={{ color: "rgba(0,0,0,0.72)" }}>
@@ -786,14 +853,18 @@ const ProgressTracker = () => {
                       <XAxis dataKey="label">
                         <Label value="Month / Date" position="insideBottom" offset={-2} />
                       </XAxis>
-                      <YAxis>
-                        <Label
-                          value="Weight (kg)"
-                          angle={-90}
-                          position="insideLeft"
-                          style={{ textAnchor: "middle" }}
-                        />
-                      </YAxis>
+                     <YAxis
+  label={{
+    value: "Weight (kg)",
+    angle: -90,
+    position: "left",
+    style: {
+      textAnchor: "middle",
+      fontWeight: 700,
+      fill: "#111"
+    }
+  }}
+/>
                       <Tooltip
                       formatter={(value) => [`${value} kg`, "Weight"]}
                       labelFormatter={(label) => `Date: ${label}`}
