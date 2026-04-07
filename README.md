@@ -19,13 +19,13 @@ Signed-in users gain access to personalized fitness tracking tools:
 
 
 ## INSTALLATION: 
-1. Clone the repository\ 
+1. Clone the repository 
 ```bash
 git clone <https://github.com/rudraukani/fitness-website>
 cd fitness-website
 ```
 
-2. Intall dependencies\
+2. Intall dependencies
 ```bash 
 npm intall 
 ```
