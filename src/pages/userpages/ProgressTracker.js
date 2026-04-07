@@ -787,7 +787,17 @@ const exerciseOptions = useMemo(() => {
 
     <XAxis dataKey="date" />
 
-    <YAxis />
+    <YAxis
+                        label={{
+                          value: "Weight (kg)",
+                          angle: -90,
+                          position: "left",
+                          style: {
+                            textAnchor: "middle",
+                            fontWeight: 600,
+                            fill: "#8f8f8f"
+                          }
+                        }}/>
 
     <Tooltip />
     <Legend />
@@ -846,25 +856,25 @@ const exerciseOptions = useMemo(() => {
               />
 
               {weightTrendData.length > 0 ? (
-                <Box sx={{ width: "100%", height: 320 }}>
+                <Box sx={{ width: "90%", height: 320 }}>
                   <ResponsiveContainer>
-                    <LineChart data={weightTrendData}>
+                    <LineChart data={weightTrendData} margin={{ left: 20, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="label">
                         <Label value="Month / Date" position="insideBottom" offset={-2} />
                       </XAxis>
                      <YAxis
-  label={{
-    value: "Weight (kg)",
-    angle: -90,
-    position: "left",
-    style: {
-      textAnchor: "middle",
-      fontWeight: 700,
-      fill: "#111"
-    }
-  }}
-/>
+                        label={{
+                          value: "Weight (kg)",
+                          angle: -90,
+                          position: "left",
+                          style: {
+                            textAnchor: "middle",
+                            fontWeight: 700,
+                            fill: "#8f8f8f"
+                          }
+                        }}
+                      />
                       <Tooltip
                       formatter={(value) => [`${value} kg`, "Weight"]}
                       labelFormatter={(label) => `Date: ${label}`}
