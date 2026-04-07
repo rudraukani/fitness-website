@@ -2,19 +2,19 @@
 Built with React, Firebase (Auth + Firestore), Material UI, Emotion, ExerciseDB from RapidAPI, & Recharts.  
 
 ## DESCRIPTION
-Our web app allows users to explore a library of exercises with GIFs and save exercises for later reference. \
+Our web app allows users to explore a library of exercises with GIFs and save exercises for later reference.  
 
-For each exercise, users can access exercise details, including performance instructions & youtube links to tutorials.\
+For each exercise, users can access exercise details, including performance instructions & youtube links to tutorials.  
 
 Signed-in users gain access to personalized fitness tracking tools:
-- Routine Management 
+- ### Routine Management 
     - Create & save custom workout routines
-- Workout Logging 
+- ### Workout Logging 
     - Log when performing a particular routine & what weights were used 
-- Body Metrics Log 
+- ### Body Metrics Log 
     - Save calorie, water intake, steps goals
     - Log weight
-- Progress Tracking 
+- ### Progress Tracking 
     - View progress graphs made from your logs 
 
 
